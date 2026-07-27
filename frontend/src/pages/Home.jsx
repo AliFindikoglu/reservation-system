@@ -1,0 +1,74 @@
+﻿import { useState } from "react";
+import SeatGrid from "../components/SeatGrid/SeatGrid";
+import Reservation from "../mock/Reservation";
+import DateSelector from "../components/DateSelector/DateSelector";
+import LoginModal from "../components/LoginModal/LoginModal";
+
+
+function Home() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [reservations, setReservations] = useState(Reservation);
+  const[selectedSeat, setSelectedSeat] = useState(null);
+
+//DATE KISMI
+  const today = new Date().toISOString().split("T")[0];
+  const [selectedDate, setSelectedDate] = useState(today);
+  const filteredReservations = reservations.filter(
+  (reservation) => reservation.date === selectedDate
+);
+
+  const [notification, setNotification] = useState({
+    message: "",
+    type: "",
+    });
+
+function handleSeatClick(seatNumber) {
+    if (selectedSeat === seatNumber) {
+        setSelectedSeat(null);
+    }
+    else{
+        setSelectedSeat(seatNumber);
+    }
+}
+
+  return (
+    <div className="home-page">
+      <div className="hero">
+        <h1>Office Seat Reservation System</h1>
+        <DateSelector
+            selectedDate={selectedDate}
+            onDateChange={setSelectedDate}
+        />
+        <p>
+          Select a seat, create a reservation, view it,
+          update it or delete it.
+        </p>
+
+        <div className="reservation-card">
+            <h3>Reservation</h3>
+
+            <p>Seat: {selectedSeat ?? "-"}</p>
+            <p>Date: {selectedDate}</p>
+
+            <button disabled={!selectedSeat}>
+            Reserve
+            </button>
+        </div>
+
+        <LoginModal
+        isOpen={!currentUser}
+        onLogin={(user) => setCurrentUser(user)}
+        />
+
+        <SeatGrid
+          reservations={filteredReservations}
+          selectedDate={selectedDate}
+          selectedSeat={selectedSeat}
+          onSeatClick={handleSeatClick}
+        />
+      </div>
+    </div>
+  );
+}
+
+export default Home;

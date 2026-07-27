@@ -1,0 +1,36 @@
+.seat {
+  width: 60px;
+  height: 60px;
+  border: none;
+  border-radius: 8px;
+  background: #777978;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.available {
+  background: #777978;
+}
+
+.available:hover {
+  background: #5a5a5a;
+}
+.reserved {
+  background: #ec2b2b;
+  cursor: not-allowed;
+}
+.reserved:hover {
+  background: #bb0808;
+}
+.seat:hover {
+  transform: scale(1.05);
+}
+.mine {
+  background: #1ef048;
+  
+}
+.selected {
+  background: #3f7bea;
+}

@@ -1,0 +1,7 @@
+.seat-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 60px);
+  gap: 12px;
+  justify-content: center;
+  margin-top: 40px;
+}
