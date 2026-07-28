@@ -1,11 +1,23 @@
 import "./SideBar.css";
-import { Map, CalendarDays, Settings } from "lucide-react";
+import { Map, CalendarDays, Settings, Building2 } from "lucide-react";
 
 
 function SideBar() {
   return (
+
+
+
     <aside className="sideBar">
-      <h2 className="logo">Seat Management</h2>
+<div className="sidebar-logo">
+  <div className="logo-box">
+    <Building2 size={30} strokeWidth={2.2} />
+  </div>
+
+  <div className="logo-text">
+    <h3>Eteration</h3>
+    <span>ITU-ARI3</span>
+  </div>
+</div>
 
       <nav>
         <button className="active" color="#334155">

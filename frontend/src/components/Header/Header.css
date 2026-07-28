@@ -6,6 +6,17 @@
     margin-bottom:40px;
 }
 
+.header h1{
+    margin:0;
+    font-size:40px;
+    font-weight:700;
+}
+
+.header p{
+    margin-top:8px;
+    color:#64748b;
+}
+
 .header-left{
     display:flex;
     flex-direction:column;

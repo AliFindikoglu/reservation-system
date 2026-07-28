@@ -1,7 +1,7 @@
 
 
 .sideBar {
-    width:250px;
+    width:200px;
     min-height: 90vh;
 
     background: rgba(255, 255, 255, 0.484);
@@ -51,4 +51,50 @@
 .sideBar .active {
     background: #e8f0fe;
     color: #2563eb;
+}
+.sidebar-logo{
+    display:flex;
+    align-items:center;
+    gap:16px;
+
+    margin-bottom:40px;
+}
+
+.logo-box{
+    width:56px;
+    height:56px;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    background:#ff6b00;
+    color:white;
+
+    border-radius:14px;
+
+    flex-shrink:0;
+}
+
+.logo-text{
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+}
+
+.logo-text h3{
+    margin:0;
+
+    font-size:24px;
+    font-weight:700;
+
+    color:#1f2937;
+}
+
+.logo-text span{
+    margin-top:2px;
+
+    font-size:14px;
+
+    color:#6b7280;
 }

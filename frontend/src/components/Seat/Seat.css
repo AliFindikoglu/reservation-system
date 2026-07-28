@@ -1,13 +1,16 @@
 .seat {
-  width: 60px;
-  height: 60px;
+  width: 70px;
+  height: 70px;
   border: none;
-  border-radius: 8px;
+  border-radius: 16px;
   background: #777978;
   color: white;
   font-weight: bold;
   cursor: pointer;
   transition: 0.2s;
+}
+.seat:hover{
+    transform:translateY(-2px);
 }
 
 .available {
@@ -28,7 +31,7 @@
   transform: scale(1.05);
 }
 .mine {
-  background: #1ef048;
+  background: #ff6b00;
   
 }
 .selected {

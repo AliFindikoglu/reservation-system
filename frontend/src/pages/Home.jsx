@@ -6,85 +6,94 @@ import DateSelector from "../components/DateSelector/DateSelector";
 import LoginModal from "../components/LoginModal/LoginModal";
 import SideBar from "../components/SideBar/SideBar";
 import Header from "../components/Header/Header";
+import ReservationSummary from "../components/ReservationSummary/ReservationSummary";
+import SeatLegend from "../components/SeatLegend/SeatLegend";
 
 function Home() {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [reservations, setReservations] = useState(Reservation);
-  const[selectedSeat, setSelectedSeat] = useState(null);
+  // Test için giriş yapılmış kullanıcı
+  const [currentUser, setCurrentUser] = useState({
+    email: "damla@eteration.com",
+  });
 
-//DATE KISMI
+  const [reservations, setReservations] = useState(Reservation);
+  const [selectedSeat, setSelectedSeat] = useState(null);
+
+  // DATE
   const today = new Date().toISOString().split("T")[0];
   const [selectedDate, setSelectedDate] = useState(today);
+
   const filteredReservations = reservations.filter(
     (reservation) => reservation.reservationDate === selectedDate
-);
+  );
 
   const [notification, setNotification] = useState({
     message: "",
     type: "",
-    });
+  });
 
-function handleSeatClick(seatNumber) {
+  function handleSeatClick(seatNumber) {
     if (selectedSeat === seatNumber) {
-        setSelectedSeat(null);
+      setSelectedSeat(null);
+    } else {
+      setSelectedSeat(seatNumber);
     }
-    else{
-        setSelectedSeat(seatNumber);
-    }
-}
+  }
 
   return (
     <div className="home-page">
-        <SideBar />
+      <SideBar />
 
-        <div className="main-content">
+      <div className="main-content">
+        <div className="hero">
 
-             <div className="hero">
+            <div className = "header-card">
+                <Header>
+            <DateSelector
+              selectedDate={selectedDate}
+              onDateChange={setSelectedDate}
+              minDate={today}
+              maxDate={new Date(today).setMonth(new Date(today).getMonth() + 1)}
+            />
+          </Header>
+                </div>
 
-     <Header>
-         <DateSelector
-             selectedDate={selectedDate}
-             onDateChange={setSelectedDate}
-             minDate={today}
-             maxDate={new Date(today).setMonth(new Date(today).getMonth() + 1)}
-         />
-     </Header>
+          
 
-        <div className="reservation-card">
-            <h3>Reservation</h3>
+          <SeatLegend />
 
-            <p>Seat: {selectedSeat ?? "-"}</p>
-            <p>Date: {selectedDate}</p>
-
-            <button disabled={!selectedSeat}>
-            Reserve
-            </button>
+          <div className="seat-grid-wrapper">
+            <SeatGrid
+                reservations={filteredReservations}
+                selectedDate={selectedDate}
+                selectedSeat={selectedSeat}
+                onSeatClick={handleSeatClick}
+            />
         </div>
 
-        
-//ŞİMDİLİK BACKEND BAĞLANDIKTAN SONRA DEĞİŞTİRİLECEK LOGİN MODAL
-        <LoginModal
-  isOpen={!currentUser}
-  onLogin={(credentials) => {
-    console.log(credentials);
+          <LoginModal
+            isOpen={!currentUser}
+            onLogin={(credentials) => {
+              console.log(credentials);
 
-    setCurrentUser({
-      id: "1",
-      fullName: "Damla Nur",
-      email: credentials.email,
-      phone: "",
-    });
-  }}
+              setCurrentUser({
+                id: "1",
+                fullName: "Damla Nur",
+                email: credentials.email,
+                phone: "",
+              });
+            }}
+          />
+
+        </div>
+      </div>
+
+            <ReservationSummary
+                selectedSeat={selectedSeat}
+                selectedDate={selectedDate}
+                onReserve={() => {
+        // backend çağrısı burada olacak
+            }}
 />
-
-        <SeatGrid
-          reservations={filteredReservations}
-          selectedDate={selectedDate}
-          selectedSeat={selectedSeat}
-          onSeatClick={handleSeatClick}
-        />
-            </div>
-        </div>
     </div>
   );
 }

@@ -1,0 +1,56 @@
+.seat-legend{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:28px;
+
+    width:fit-content;
+
+    margin:0 auto 12px;
+    padding:12px 22px;
+
+    background:#ffffff;
+
+    border:1px solid #ececec;
+    border-radius:16px;
+
+    box-shadow:0 4px 10px rgba(0,0,0,.05);
+}
+
+.legend-item{
+    display:flex;
+    align-items:center;
+    gap:8px;
+
+    font-size:14px;
+    font-weight:500;
+
+    color:#4b5563;
+}
+
+.legend-color{
+    width:16px;
+    height:16px;
+
+    border-radius:6px;
+}
+
+/* Available */
+.legend-color.available{
+    background:#777978;
+}
+
+/* Selected */
+.legend-color.selected{
+    background:#3b82f6;
+}
+
+/* My Reservation */
+.legend-color.mine{
+    background:#f59e0b;
+}
+
+/* Reserved */
+.legend-color.reserved{
+    background:#ec2b2b;
+}
