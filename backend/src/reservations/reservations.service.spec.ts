@@ -1,4 +1,9 @@
-import { ForbiddenException, NotFoundException } from "@nestjs/common";
+import {
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { ReservationsService } from "./reservations.service";
 
 describe("ReservationsService", () => {
@@ -35,6 +40,53 @@ describe("ReservationsService", () => {
         data: expect.objectContaining({ userId: "user-1" }),
       }),
     );
+  });
+  it("aynı masa ve tarih için eşzamanlı isteklerden yalnız birini kabul eder", async () => {
+    prisma.table.findUnique.mockResolvedValue({ id: 1, number: 1 });
+
+    const successfulReservation = {
+      id: "reservation-1",
+      reservationDate: new Date("2099-01-01"),
+      table: { number: 1 },
+    };
+    const uniqueConstraintError =
+      new Prisma.PrismaClientKnownRequestError(
+        "Unique constraint failed on tableId and reservationDate",
+        {
+          code: "P2002",
+          clientVersion: Prisma.prismaVersion.client,
+          meta: { target: ["tableId", "reservationDate"] },
+        },
+      );
+
+    prisma.reservation.create
+      .mockResolvedValueOnce(successfulReservation)
+      .mockRejectedValueOnce(uniqueConstraintError);
+
+    const results = await Promise.allSettled([
+      service.create("user-1", dto),
+      service.create("user-2", dto),
+    ]);
+
+    expect(results[0]).toMatchObject({
+      status: "fulfilled",
+      value: {
+        id: "reservation-1",
+        tableNumber: 1,
+      },
+    });
+    expect(results[1]).toMatchObject({
+      status: "rejected",
+      reason: expect.any(ConflictException),
+    });
+
+    const rejectedResult = results[1];
+    if (rejectedResult.status === "rejected") {
+      expect(rejectedResult.reason).toMatchObject({
+        message: "Seçilen masa bu tarihte zaten rezerve edilmiş.",
+      });
+    }
+    expect(prisma.reservation.create).toHaveBeenCalledTimes(2);
   });
   it("kullanıcıya yalnız kendi rezervasyonlarını döndürür", async () => {
     prisma.reservation.findMany.mockResolvedValue([]);
