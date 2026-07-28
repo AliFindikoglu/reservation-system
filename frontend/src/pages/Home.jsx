@@ -1,9 +1,11 @@
 ﻿import { useState } from "react";
+import "../styles/Home.css";
 import SeatGrid from "../components/SeatGrid/SeatGrid";
 import Reservation from "../mock/Reservation";
 import DateSelector from "../components/DateSelector/DateSelector";
 import LoginModal from "../components/LoginModal/LoginModal";
-
+import SideBar from "../components/SideBar/SideBar";
+import Header from "../components/Header/Header";
 
 function Home() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -33,16 +35,19 @@ function handleSeatClick(seatNumber) {
 
   return (
     <div className="home-page">
-      <div className="hero">
-        <h1>Office Seat Reservation System</h1>
-        <DateSelector
-            selectedDate={selectedDate}
-            onDateChange={setSelectedDate}
-        />
-        <p>
-          Select a seat, create a reservation, view it,
-          update it or delete it.
-        </p>
+        <SideBar />
+
+        <div className="main-content">
+
+             <div className="hero">
+
+     <Header>
+         <DateSelector
+             selectedDate={selectedDate}
+             onDateChange={setSelectedDate}
+             minDate={today}
+         />
+     </Header>
 
         <div className="reservation-card">
             <h3>Reservation</h3>
@@ -66,7 +71,8 @@ function handleSeatClick(seatNumber) {
           selectedSeat={selectedSeat}
           onSeatClick={handleSeatClick}
         />
-      </div>
+            </div>
+        </div>
     </div>
   );
 }

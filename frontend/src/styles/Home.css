@@ -1,0 +1,16 @@
+.home-page {
+    display: flex;
+    min-height: 100vh;
+    background-color: #f5f7fa;
+}
+
+.main-content {
+    flex: 1;
+    padding: 32px;
+}
+
+.hero {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
