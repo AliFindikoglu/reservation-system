@@ -1,0 +1,40 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Table {
+  id           Int           @id @default(autoincrement())
+  number       Int           @unique
+  reservations Reservation[]
+}
+
+model Reservation {
+  id              String   @id @default(uuid())
+  reservationDate DateTime @db.Date
+  tableId         Int
+  userId          String
+  table           Table    @relation(fields: [tableId], references: [id], onDelete: Restrict)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tableId, reservationDate])
+  @@unique([userId, reservationDate])
+  @@index([reservationDate])
+}
+
+model User {
+  id           String        @id @default(uuid())
+  fullName     String
+  email        String        @unique
+  phone        String
+  passwordHash String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  reservations Reservation[]
+}
