@@ -46,7 +46,7 @@ Backend, DTO’da tanımlanmayan alanları kabul etmez. Fazladan bir alan gönde
 - E-posta adresi küçük harfe dönüştürülerek saklanır ve benzersizdir.
 - Bir kullanıcı aynı tarih için yalnız bir rezervasyona sahip olabilir.
 - Bir masa aynı tarih için yalnız bir kullanıcı tarafından rezerve edilebilir.
-- Rezervasyon bugün ile yapılandırılmış ileri gün sınırı arasında oluşturulabilir. Varsayılan sınır 7 gündür ve son gün dahildir.
+- Rezervasyon bugün ile yapılandırılmış ileri gün sınırı arasında oluşturulabilir. Varsayılan sınır 30 gündür ve son gün dahildir.
 - Kullanıcı yalnız kendi rezervasyonlarını görüntüleyebilir, güncelleyebilir ve silebilir.
 - Rezervasyon silindiğinde masa aynı tarih için yeniden kullanılabilir.
 - Rezervasyon sahipliği JWT’deki kullanıcı kimliğiyle belirlenir.
