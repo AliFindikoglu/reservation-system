@@ -1,7 +1,6 @@
 import { useState } from "react";
 import "./LoginModal.css";
 function LoginModal({isOpen, onLogin}) {
-    console.log("LoginModal render", isOpen);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
@@ -19,7 +18,7 @@ function LoginModal({isOpen, onLogin}) {
           <input
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value.toLowerCase())}
             placeholder="name@eteration.com"
           />
         </div>
@@ -35,7 +34,13 @@ function LoginModal({isOpen, onLogin}) {
 
           <button
             className="login-button"
-            onClick={() => onLogin(email, password)}
+            disabled={!email || !password}
+            onClick={() => 
+                onLogin({
+                    email, 
+                    password,
+                })
+            }
           >
             Login
           </button>

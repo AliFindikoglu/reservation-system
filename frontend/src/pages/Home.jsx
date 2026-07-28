@@ -16,7 +16,7 @@ function Home() {
   const today = new Date().toISOString().split("T")[0];
   const [selectedDate, setSelectedDate] = useState(today);
   const filteredReservations = reservations.filter(
-  (reservation) => reservation.date === selectedDate
+    (reservation) => reservation.reservationDate === selectedDate
 );
 
   const [notification, setNotification] = useState({
@@ -46,6 +46,7 @@ function handleSeatClick(seatNumber) {
              selectedDate={selectedDate}
              onDateChange={setSelectedDate}
              minDate={today}
+             maxDate={new Date(today).setMonth(new Date(today).getMonth() + 1)}
          />
      </Header>
 
@@ -60,10 +61,21 @@ function handleSeatClick(seatNumber) {
             </button>
         </div>
 
+        
+//ŞİMDİLİK BACKEND BAĞLANDIKTAN SONRA DEĞİŞTİRİLECEK LOGİN MODAL
         <LoginModal
-        isOpen={!currentUser}
-        onLogin={(user) => setCurrentUser(user)}
-        />
+  isOpen={!currentUser}
+  onLogin={(credentials) => {
+    console.log(credentials);
+
+    setCurrentUser({
+      id: "1",
+      fullName: "Damla Nur",
+      email: credentials.email,
+      phone: "",
+    });
+  }}
+/>
 
         <SeatGrid
           reservations={filteredReservations}

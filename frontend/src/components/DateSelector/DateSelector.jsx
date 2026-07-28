@@ -4,6 +4,12 @@ import { Calendar } from "lucide-react";
 import "./DateSelector.css";
 
 function DateSelector({ selectedDate, onDateChange }) {
+
+  const today = new Date();
+
+  const oneMonthLater = new Date(today);
+  oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
+
   return (
     <div className="date-picker">
       <Calendar size={18} />
@@ -11,10 +17,11 @@ function DateSelector({ selectedDate, onDateChange }) {
       <DatePicker
         selected={new Date(selectedDate)}
         onChange={(date) => onDateChange(date.toISOString().split("T")[0])}
-        minDate={new Date()}
+        minDate={today}
+        maxDate={oneMonthLater}
         dateFormat="d MMMM yyyy"
         onKeyDown={(e) => e.preventDefault()}
-/>
+      />
     </div>
   );
 }
