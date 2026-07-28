@@ -3,8 +3,8 @@ import { BadRequestException } from "@nestjs/common";
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function getMaximumReservationDaysAhead(): number {
-  const value = Number(process.env.MAX_RESERVATION_DAYS_AHEAD ?? 7);
-  return Number.isInteger(value) && value >= 0 ? value : 7;
+  const value = Number(process.env.MAX_RESERVATION_DAYS_AHEAD ?? 30);
+  return Number.isInteger(value) && value >= 0 ? value : 30;
 }
 
 function getTodayInBusinessTimeZone(): string {

@@ -15,7 +15,9 @@ import { AuthModule } from "./auth/auth.module";
           throw new Error("JWT_SECRET en az 32 karakter olmalıdır.");
         }
 
-        const maximumDays = Number(environment.MAX_RESERVATION_DAYS_AHEAD ?? 7);
+        const maximumDays = Number(
+          environment.MAX_RESERVATION_DAYS_AHEAD ?? 30,
+        );
         if (!Number.isInteger(maximumDays) || maximumDays < 0) {
           throw new Error(
             "MAX_RESERVATION_DAYS_AHEAD sıfır veya pozitif bir tam sayı olmalıdır.",

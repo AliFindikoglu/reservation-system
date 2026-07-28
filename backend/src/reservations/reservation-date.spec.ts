@@ -3,7 +3,7 @@ import { parseReservationDate } from "./reservation-date";
 
 describe("parseReservationDate", () => {
   beforeEach(() => {
-    process.env.MAX_RESERVATION_DAYS_AHEAD = "7";
+    process.env.MAX_RESERVATION_DAYS_AHEAD = "30";
   });
 
   it.each(["2099-02-30", "01-01-2099"])(
@@ -21,7 +21,7 @@ describe("parseReservationDate", () => {
 
   it("izin verilen gün sınırını aşan tarih için BadRequestException verir", () => {
     const date = new Date();
-    date.setUTCDate(date.getUTCDate() + 8);
+    date.setUTCDate(date.getUTCDate() + 31);
     expect(() => parseReservationDate(date.toISOString().slice(0, 10))).toThrow(
       BadRequestException,
     );
