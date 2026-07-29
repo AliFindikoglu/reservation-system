@@ -32,7 +32,9 @@ export class AuthService {
       dto.email.trim().toLowerCase(),
     );
     if (!user || !(await bcrypt.compare(dto.password, user.passwordHash))) {
-      throw new UnauthorizedException("E-posta veya parola hatalı.");
+      throw new UnauthorizedException(
+        "E-posta adresinizi ve parolanızı kontrol ediniz.",
+      );
     }
     return this.buildAuthResponse(user);
   }
@@ -40,7 +42,9 @@ export class AuthService {
   async me(userId: string) {
     const user = await this.usersService.findById(userId);
     if (!user) {
-      throw new UnauthorizedException("Kullanıcı bulunamadı.");
+      throw new UnauthorizedException(
+        "Kullanıcı hesabınız bulunamadı. Lütfen sistem yöneticisiyle iletişime geçiniz.",
+      );
     }
     return {
       id: user.id,
@@ -53,7 +57,7 @@ export class AuthService {
   async updateProfile(userId: string, dto: UpdateProfileDto) {
     if (dto.fullName === undefined && dto.phone === undefined) {
       throw new BadRequestException(
-        "fullName veya phone alanlarından en az biri gönderilmelidir.",
+        "Ad soyad veya telefon numarası alanlarından en az birini gönderiniz.",
       );
     }
 

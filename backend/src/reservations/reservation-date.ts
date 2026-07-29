@@ -23,7 +23,9 @@ function getTodayInBusinessTimeZone(): string {
 
 export function parseReservationDate(value: string): Date {
   if (!DATE_PATTERN.test(value)) {
-    throw new BadRequestException("Tarih YYYY-MM-DD formatında olmalıdır.");
+    throw new BadRequestException(
+      "Rezervasyon tarihini YYYY-MM-DD biçiminde giriniz.",
+    );
   }
 
   const date = new Date(`${value}T00:00:00.000Z`);
@@ -31,14 +33,12 @@ export function parseReservationDate(value: string): Date {
     Number.isNaN(date.getTime()) ||
     date.toISOString().slice(0, 10) !== value
   ) {
-    throw new BadRequestException("Geçerli bir tarih girilmelidir.");
+    throw new BadRequestException("Geçerli bir rezervasyon tarihi giriniz.");
   }
 
   const today = getTodayInBusinessTimeZone();
   if (value < today) {
-    throw new BadRequestException(
-      "Geçmiş bir tarih için rezervasyon yapılamaz.",
-    );
+    throw new BadRequestException("Bugün veya ileri bir tarih seçiniz.");
   }
 
   const maximumDate = new Date(`${today}T00:00:00.000Z`);
@@ -47,7 +47,7 @@ export function parseReservationDate(value: string): Date {
   );
   if (date > maximumDate) {
     throw new BadRequestException(
-      `En fazla ${getMaximumReservationDaysAhead()} gün sonrası için rezervasyon yapılabilir.`,
+      `Bugünden itibaren en fazla ${getMaximumReservationDaysAhead()} gün içinde bir tarih seçiniz.`,
     );
   }
 

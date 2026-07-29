@@ -21,12 +21,12 @@ describe("AuthService", () => {
       service.register({
         fullName: "Ayşe",
         email: "AYSE@eteration.com",
-        phone: "+905551112233",
-        password: "secret1",
+        phone: "05061112233",
+        password: "secret12",
       }),
     ).resolves.toMatchObject({ accessToken: "jwt-token" });
 
-    expect(users.create.mock.calls[0][0].passwordHash).not.toBe("secret1");
+    expect(users.create.mock.calls[0][0].passwordHash).not.toBe("secret12");
   });
 
   it("doğru parola ile giriş yaptırır", async () => {
@@ -34,14 +34,14 @@ describe("AuthService", () => {
       id: "u1",
       fullName: "Ayşe",
       email: "ayse@eteration.com",
-      phone: "+905551112233",
-      passwordHash: await bcrypt.hash("secret1", 10),
+      phone: "05061112233",
+      passwordHash: await bcrypt.hash("secret12", 10),
     });
 
     await expect(
       service.login({
         email: "ayse@eteration.com",
-        password: "secret1",
+        password: "secret12",
       }),
     ).resolves.toMatchObject({ accessToken: "jwt-token" });
   });
@@ -62,7 +62,7 @@ describe("AuthService", () => {
       id: "u1",
       fullName: "Ayşe",
       email: "ayse@eteration.com",
-      phone: "+905551112233",
+      phone: "05061112233",
       passwordHash: "gizli-hash",
     });
 
@@ -70,7 +70,7 @@ describe("AuthService", () => {
       id: "u1",
       fullName: "Ayşe",
       email: "ayse@eteration.com",
-      phone: "+905551112233",
+      phone: "05061112233",
     });
   });
 
@@ -79,25 +79,25 @@ describe("AuthService", () => {
       id: "u1",
       fullName: "Ayşe Kaya",
       email: "ayse@eteration.com",
-      phone: "+905559999999",
+      phone: "05069999999",
       passwordHash: "gizli-hash",
     });
 
     await expect(
       service.updateProfile("u1", {
         fullName: "  Ayşe Kaya  ",
-        phone: "  +905559999999  ",
+        phone: "  05069999999  ",
       }),
     ).resolves.toEqual({
       id: "u1",
       fullName: "Ayşe Kaya",
       email: "ayse@eteration.com",
-      phone: "+905559999999",
+      phone: "05069999999",
     });
 
     expect(users.updateProfile).toHaveBeenCalledWith("u1", {
       fullName: "Ayşe Kaya",
-      phone: "+905559999999",
+      phone: "05069999999",
     });
   });
 });
