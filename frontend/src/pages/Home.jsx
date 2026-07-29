@@ -57,9 +57,6 @@ function Home() {
   }
 
   async function handleReserve() {
-      console.log("Reserve clicked");
-      console.log("Seat:", selectedSeat);
-      console.log("Date:", selectedDate);
     if (!selectedSeat) {
       alert("Lütfen bir masa seçin.");
       return;
@@ -115,6 +112,7 @@ function Home() {
 
           <LoginModal
             isOpen={isLoginOpen}
+            onClose={() => setIsLoginOpen(false)}            
             onOpenRegister={() => {
                 setIsLoginOpen(false);
                 setIsRegisterOpen(true);
@@ -131,12 +129,18 @@ function Home() {
                 console.log("Login Succes", data);
               } catch (error) {
                 console.error("Login error:", error);
+                throw error;
               }
             }}
           />
 
           <RegisterModal
   isOpen={isRegisterOpen}
+  onClose={() => setIsRegisterOpen(false)}
+  onOpenLogin={() => {
+    setIsRegisterOpen(false);
+    setIsLoginOpen(true);
+  }}
   onRegister={async (user) => {
     try {
       const data = await register(user);
