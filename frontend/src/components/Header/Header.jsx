@@ -1,9 +1,8 @@
 import "./Header.css";
 
-function Header({ selectedDate, children }) {
+function Header({ children, currentUser, onLogin, onRegister, onLogout }) {
   return (
     <header className="header">
-
       <div className="header-left">
         <h1>Find your workspace</h1>
         <p>Select a date and reserve your seat.</p>
@@ -11,8 +10,19 @@ function Header({ selectedDate, children }) {
 
       <div className="header-right">
         {children}
-      </div>
+        {!currentUser?(
+            <div className="auth-buttons">
+                <button onClick={onLogin}>Login</button>
+                <button onClick={onRegister}>Register</button>
+                </div>
 
+        ) : (
+            <div className="user-info">
+                <span>{currentUser.fullName}</span>
+                <button onClick={onLogout}>Logout</button>
+            </div>
+        )}
+      </div>
     </header>
   );
 }

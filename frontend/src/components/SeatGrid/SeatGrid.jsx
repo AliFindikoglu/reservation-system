@@ -2,8 +2,7 @@
 import Seat from "../Seat/Seat";
 
 function SeatGrid({
-  reservations,
-  selectedDate,
+  availableTables,
   selectedSeat,
   onSeatClick,
 }) {
@@ -17,13 +16,7 @@ function SeatGrid({
   ];
 
   const renderSeat = (seatNumber, label) => {
-    const reservation = reservations.find(
-      (reservation) =>
-        reservation.tableNumber === seatNumber &&
-        reservation.reservationDate === selectedDate
-    );
-
-    const isReserved = !!reservation;
+    const isReserved = !availableTables.includes(seatNumber);
 
     return (
       <Seat
@@ -43,12 +36,9 @@ function SeatGrid({
 
   return (
     <div className="office-container">
-
       <div className="office-layout">
-
         {blocks.map((block) => (
           <div className="column" key={block.letter}>
-
             <h4>{block.letter}</h4>
 
             <div className="seat-block">
@@ -56,16 +46,13 @@ function SeatGrid({
                 renderSeat(seatNumber, `${block.letter}${i + 1}`)
               )}
             </div>
-
           </div>
         ))}
-
       </div>
 
       <div className="window-wall">
         <span>WINDOW</span>
       </div>
-
     </div>
   );
 }

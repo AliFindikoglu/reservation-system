@@ -1,6 +1,6 @@
 import { useState } from "react";
 import "./LoginModal.css";
-function LoginModal({isOpen, onLogin}) {
+function LoginModal({isOpen, onLogin, onOpenRegister,}) {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
@@ -33,17 +33,22 @@ function LoginModal({isOpen, onLogin}) {
           />
 
           <button
-            className="login-button"
-            disabled={!email || !password}
-            onClick={() => 
-                onLogin({
-                    email, 
-                    password,
-                })
-            }
-          >
-            Login
-          </button>
+  className="login-button"
+  disabled={!email || !password}
+  onClick={() =>
+    onLogin({
+      email,
+      password,
+    })
+  }
+>
+  Login
+</button>
+
+<p className="switch-auth">
+  Don't have an account?{" "}
+  <span onClick={onOpenRegister}>Register</span>
+</p>
         </div>
     </div>
     

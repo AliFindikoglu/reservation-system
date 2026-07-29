@@ -1,41 +1,83 @@
-﻿import { useState } from "react";
+﻿import { useState, useEffect } from "react";
 import "../styles/Home.css";
 import SeatGrid from "../components/SeatGrid/SeatGrid";
-import Reservation from "../mock/Reservation";
 import DateSelector from "../components/DateSelector/DateSelector";
 import LoginModal from "../components/LoginModal/LoginModal";
 import SideBar from "../components/SideBar/SideBar";
 import Header from "../components/Header/Header";
 import ReservationSummary from "../components/ReservationSummary/ReservationSummary";
 import SeatLegend from "../components/SeatLegend/SeatLegend";
+import RegisterModal from "../components/RegisterModal/RegisterModal";
+
+import { login, register } from "../api/authApi";
+import { getAvailableTables } from "../api/tableApi";
+import { createReservation } from "../api/reservationsApi";
 
 function Home() {
-  // Test için giriş yapılmış kullanıcı
-  const [currentUser, setCurrentUser] = useState({
-    email: "damla@eteration.com",
-  });
-
-  const [reservations, setReservations] = useState(Reservation);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [availableTables, setAvailableTables] = useState([]);
   const [selectedSeat, setSelectedSeat] = useState(null);
 
-  // DATE
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+
   const today = new Date().toISOString().split("T")[0];
   const [selectedDate, setSelectedDate] = useState(today);
 
-  const filteredReservations = reservations.filter(
-    (reservation) => reservation.reservationDate === selectedDate
-  );
+  function logout() {
+    localStorage.removeItem("token");
+    setCurrentUser(null);
+    setSelectedSeat(null);
+  }
 
-  const [notification, setNotification] = useState({
-    message: "",
-    type: "",
-  });
+  async function loadTables() {
+    try {
+      const data = await getAvailableTables(selectedDate);
+      setAvailableTables(data.tables);
+    } catch (error) {
+      console.error("Error fetching available tables:", error);
+    }
+  }
+
+  useEffect(() => {
+    loadTables();
+  }, [selectedDate]);
 
   function handleSeatClick(seatNumber) {
+    if (!currentUser) {
+      setIsLoginOpen(true);
+      return;
+    }
+
     if (selectedSeat === seatNumber) {
       setSelectedSeat(null);
     } else {
       setSelectedSeat(seatNumber);
+    }
+  }
+
+  async function handleReserve() {
+      console.log("Reserve clicked");
+      console.log("Seat:", selectedSeat);
+      console.log("Date:", selectedDate);
+    if (!selectedSeat) {
+      alert("Lütfen bir masa seçin.");
+      return;
+    }
+
+    try {
+      await createReservation({
+        tableNumber: selectedSeat,
+        reservationDate: selectedDate,
+      });
+
+      alert("Reservation created successfully.");
+
+      await loadTables();
+      setSelectedSeat(null);
+    } catch (error) {
+      console.error(error);
+      alert("Reservation failed.");
     }
   }
 
@@ -45,55 +87,79 @@ function Home() {
 
       <div className="main-content">
         <div className="hero">
-
-            <div className = "header-card">
-                <Header>
-            <DateSelector
-              selectedDate={selectedDate}
-              onDateChange={setSelectedDate}
-              minDate={today}
-              maxDate={new Date(today).setMonth(new Date(today).getMonth() + 1)}
-            />
-          </Header>
-                </div>
-
-          
+          <div className="header-card">
+            <Header
+              currentUser={currentUser}
+              onLogin={() => setIsLoginOpen(true)}
+              onRegister={() => setIsRegisterOpen(true)}
+              onLogout={logout}
+            >
+              <DateSelector
+                selectedDate={selectedDate}
+                onDateChange={setSelectedDate}
+                minDate={today}
+                maxDate={new Date(today).setMonth(new Date(today).getMonth() + 1)}
+              />
+            </Header>
+          </div>
 
           <SeatLegend />
 
           <div className="seat-grid-wrapper">
             <SeatGrid
-                reservations={filteredReservations}
-                selectedDate={selectedDate}
-                selectedSeat={selectedSeat}
-                onSeatClick={handleSeatClick}
+              availableTables={availableTables}
+              selectedSeat={selectedSeat}
+              onSeatClick={handleSeatClick}
             />
-        </div>
+          </div>
 
           <LoginModal
-            isOpen={!currentUser}
-            onLogin={(credentials) => {
-              console.log(credentials);
+            isOpen={isLoginOpen}
+            onOpenRegister={() => {
+                setIsLoginOpen(false);
+                setIsRegisterOpen(true);
+            }}
+            onLogin={async (credentials) => {
+              try {
+                const data = await login(credentials);
 
-              setCurrentUser({
-                id: "1",
-                fullName: "Damla Nur",
-                email: credentials.email,
-                phone: "",
-              });
+                localStorage.setItem("token", data.accessToken);
+                setCurrentUser(data.user);
+
+                setIsLoginOpen(false);
+
+                console.log("Login Succes", data);
+              } catch (error) {
+                console.error("Login error:", error);
+              }
             }}
           />
 
+          <RegisterModal
+  isOpen={isRegisterOpen}
+  onRegister={async (user) => {
+    try {
+      const data = await register(user);
+
+      localStorage.setItem("token", data.accessToken);
+      setCurrentUser(data.user);
+
+      setIsRegisterOpen(false);
+
+      console.log("Kayıt başarılı", data);
+    } catch (error) {
+      console.error("Register hatası:", error);
+    }
+  }}
+/>
         </div>
       </div>
 
-            <ReservationSummary
-                selectedSeat={selectedSeat}
-                selectedDate={selectedDate}
-                onReserve={() => {
-        // backend çağrısı burada olacak
-            }}
-/>
+      <ReservationSummary
+        selectedSeat={selectedSeat}
+        selectedDate={selectedDate}
+        onReserve={handleReserve}
+      />
     </div>
   );
 }
