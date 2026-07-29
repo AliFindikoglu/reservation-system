@@ -45,7 +45,9 @@ export class AuthController {
     description: "Geçerli bilgiler için JWT access token döner.",
     type: AuthResponseDto,
   })
-  @ApiUnauthorizedResponse({ description: "E-posta veya parola hatalı." })
+  @ApiUnauthorizedResponse({
+    description: "E-posta adresi veya parola hatalıdır.",
+  })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
   }
@@ -58,7 +60,7 @@ export class AuthController {
     type: UserResponseDto,
   })
   @ApiUnauthorizedResponse({
-    description: "JWT eksik, geçersiz veya süresi dolmuş.",
+    description: "Oturum bilgisi eksik, geçersiz veya süresi dolmuştur.",
   })
   me(@CurrentUser() user: AuthenticatedUser) {
     return this.authService.me(user.userId);
@@ -77,7 +79,7 @@ export class AuthController {
       "Alan doğrulaması başarısız veya e-posta gibi değiştirilemeyen bir alan gönderildi.",
   })
   @ApiUnauthorizedResponse({
-    description: "JWT eksik, geçersiz veya süresi dolmuş.",
+    description: "Oturum bilgisi eksik, geçersiz veya süresi dolmuştur.",
   })
   updateProfile(
     @CurrentUser() user: AuthenticatedUser,

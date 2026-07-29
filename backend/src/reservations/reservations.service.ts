@@ -76,7 +76,9 @@ export class ReservationsService {
     });
     if (!reservation) throw new NotFoundException("Rezervasyon bulunamadı.");
     if (reservation.userId !== userId)
-      throw new ForbiddenException("Bu rezervasyon size ait değil.");
+      throw new ForbiddenException(
+        "Bu rezervasyon üzerinde işlem yapma yetkiniz bulunmamaktadır.",
+      );
     return reservation;
   }
   private handleConflict(error: unknown) {
@@ -87,10 +89,10 @@ export class ReservationsService {
       const target = error.meta?.target;
       if (Array.isArray(target) && target.includes("userId"))
         throw new ConflictException(
-          "Aynı gün için zaten bir rezervasyonunuz var.",
+          "Aynı gün için yalnızca bir rezervasyon oluşturabilirsiniz.",
         );
       throw new ConflictException(
-        "Seçilen masa bu tarihte zaten rezerve edilmiş.",
+        "Seçtiğiniz masa bu tarihte zaten rezerve edilmiştir.",
       );
     }
   }

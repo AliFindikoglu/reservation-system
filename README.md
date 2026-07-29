@@ -60,8 +60,8 @@ Authorization: Bearer <accessToken>
 {
   "fullName": "Ayşe Yılmaz",
   "email": "ayse.yilmaz@eteration.com",
-  "phone": "+905551112233",
-  "password": "gucluParola1"
+  "phone": "05061234215",
+  "password": "GucluParola1!"
 }
 ```
 
@@ -74,7 +74,7 @@ Başarılı yanıt (`201`):
     "id": "<uuid>",
     "fullName": "Ayşe Yılmaz",
     "email": "ayse.yilmaz@eteration.com",
-    "phone": "+905551112233"
+    "phone": "05061234215"
   }
 }
 ```
@@ -86,7 +86,7 @@ Başarılı yanıt (`201`):
 ```json
 {
   "email": "ayse.yilmaz@eteration.com",
-  "password": "gucluParola1"
+  "password": "GucluParola1!"
 }
 ```
 
@@ -128,13 +128,14 @@ Güncellemede `tableNumber` ve `reservationDate` alanlarından biri veya ikisi g
 
 Başlıca hata durumları:
 
-- `400 Bad Request`: DTO, UUID veya tarih doğrulaması başarısız.
-- `401 Unauthorized`: JWT yok, geçersiz, süresi dolmuş veya kullanıcı artık mevcut değil.
-- `403 Forbidden`: rezervasyon başka kullanıcıya ait.
-- `404 Not Found`: masa veya rezervasyon bulunamadı.
-- `409 Conflict`: e-posta zaten kayıtlı, masa/tarih dolu veya kullanıcı aynı gün başka rezervasyona sahip.
+- `400`: İstek, UUID veya tarih doğrulaması başarısız.
+- `401`: Oturum bilgisi yok, geçersiz, süresi dolmuş veya kullanıcı artık mevcut değil.
+- `403`: Rezervasyon başka kullanıcıya ait.
+- `404`: Masa veya rezervasyon bulunamadı.
+- `409`: E-posta zaten kayıtlı, masa/tarih dolu veya kullanıcı aynı gün başka rezervasyona sahip.
 
-Frontend, kullanıcıya göstereceği metin için JSON yanıttaki `message` alanını kullanabilir.
+Hata yanıtındaki `message` alanı her zaman tek bir Türkçe metindir. Frontend
+bu mesajı doğrudan kullanıcıya gösterebilir.
 
 ## Test ve kalite komutları
 

@@ -21,7 +21,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: AuthenticatedUser): Promise<AuthenticatedUser> {
     const user = await this.usersService.findById(payload.userId);
     if (!user) {
-      throw new UnauthorizedException("Kullanıcı hesabı bulunamadı.");
+      throw new UnauthorizedException(
+        "Kullanıcı hesabınız bulunamadı. Lütfen sistem yöneticisiyle iletişime geçiniz.",
+      );
     }
     return { userId: user.id, email: user.email };
   }

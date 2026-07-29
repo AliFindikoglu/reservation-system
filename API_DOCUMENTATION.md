@@ -100,8 +100,7 @@ interface AvailableTablesResponse {
 ```ts
 interface ApiError {
   statusCode: number;
-  error: string;
-  message: string | string[];
+  message: string;
 }
 ```
 
@@ -121,8 +120,8 @@ Kimlik doğrulama gerekmez.
 {
   "fullName": "Ayşe Yılmaz",
   "email": "ayse.yilmaz@eteration.com",
-  "phone": "+905551112233",
-  "password": "gucluParola1"
+  "phone": "05061234215",
+  "password": "GucluParola1!"
 }
 ```
 
@@ -130,10 +129,10 @@ Alan doğrulamaları:
 
 | Alan | Kural |
 |---|---|
-| `fullName` | Boş olmayan string |
+| `fullName` | `null`, boş veya yalnızca boşluklardan oluşmayan string |
 | `email` | Geçerli e-posta ve şirket uzantısı |
-| `phone` | İsteğe bağlı `+` ile 10–15 rakam |
-| `password` | En az 6 karakter |
+| `phone` | `05` ile başlayan 11 haneli Türkiye cep telefonu numarası |
+| `password` | En az 8 karakterli; büyük harf, küçük harf, sayı ve sembol içeren, boşluk içermeyen string |
 
 Başarılı yanıt — `201 Created`:
 
@@ -144,7 +143,7 @@ Başarılı yanıt — `201 Created`:
     "id": "99e211c1-d21d-4932-82b4-8a8201295e3e",
     "fullName": "Ayşe Yılmaz",
     "email": "ayse.yilmaz@eteration.com",
-    "phone": "+905551112233"
+    "phone": "05061234215"
   }
 }
 ```
@@ -171,7 +170,7 @@ Kimlik doğrulama gerekmez.
 ```json
 {
   "email": "ayse.yilmaz@eteration.com",
-  "password": "gucluParola1"
+  "password": "GucluParola1!"
 }
 ```
 
@@ -198,7 +197,7 @@ Başarılı yanıt — `200 OK`:
   "id": "99e211c1-d21d-4932-82b4-8a8201295e3e",
   "fullName": "Ayşe Yılmaz",
   "email": "ayse.yilmaz@eteration.com",
-  "phone": "+905551112233"
+  "phone": "05061234215"
 }
 ```
 
@@ -222,7 +221,7 @@ Yalnız `fullName` ve `phone` değiştirilebilir. E-posta değiştirilemez.
 ```json
 {
   "fullName": "Ayşe Kaya",
-  "phone": "+905559999999"
+  "phone": "05069999999"
 }
 ```
 
@@ -235,7 +234,7 @@ Başarılı yanıt — `200 OK`:
   "id": "99e211c1-d21d-4932-82b4-8a8201295e3e",
   "fullName": "Ayşe Kaya",
   "email": "ayse.yilmaz@eteration.com",
-  "phone": "+905559999999"
+  "phone": "05069999999"
 }
 ```
 
@@ -409,29 +408,26 @@ Hatalar:
 
 ## 8. Hata yanıtları
 
-İş kuralı hatası:
+API hata yanıtlarında `message` her zaman tek bir Türkçe metindir:
 
 ```json
 {
-  "message": "Seçilen masa bu tarihte zaten rezerve edilmiş.",
-  "error": "Conflict",
-  "statusCode": 409
+  "statusCode": 409,
+  "message": "Seçtiğiniz masa bu tarihte zaten rezerve edilmiştir."
 }
 ```
 
-Birden fazla doğrulama hatası:
+Doğrulama hatası:
 
 ```json
 {
-  "message": [
-    "email şirket e-posta uzantısını kullanmalıdır."
-  ],
-  "error": "Bad Request",
-  "statusCode": 400
+  "statusCode": 400,
+  "message": "Şirket e-posta adresinizi giriniz."
 }
 ```
 
-İstemci `message` alanını hem `string` hem `string[]` olarak ele almalıdır.
+Bir istekte birden fazla geçersiz alan olsa bile yalnızca ilk doğrulama
+mesajı döndürülür. İngilizce `error` alanı hata yanıtlarında yer almaz.
 
 ### HTTP durum kodları
 
@@ -459,13 +455,11 @@ Birden fazla doğrulama hatası:
 9. Silme işleminde `204` yanıt gövdesini ayrıştırmayın.
 10. Profil formunda e-postayı salt okunur gösterin ve güncelleme isteğine eklemeyin.
 
-Basit hata mesajı dönüştürücüsü:
+Basit hata mesajı okuyucusu:
 
 ```ts
 function getErrorMessage(error: ApiError): string {
-  return Array.isArray(error.message)
-    ? error.message.join("\n")
-    : error.message;
+  return error.message;
 }
 ```
 

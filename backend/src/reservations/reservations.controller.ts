@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -41,7 +42,7 @@ export class ReservationsController {
     type: ReservationResponseDto,
   })
   @ApiUnauthorizedResponse({
-    description: "JWT eksik, geçersiz veya süresi dolmuş.",
+    description: "Oturum bilgisi eksik, geçersiz veya süresi dolmuştur.",
   })
   create(
     @CurrentUser() user: AuthenticatedUser,
@@ -70,7 +71,16 @@ export class ReservationsController {
   })
   @ApiNotFoundResponse({ description: "Rezervasyon bulunamadı." })
   update(
-    @Param("id", new ParseUUIDPipe()) id: string,
+    @Param(
+      "id",
+      new ParseUUIDPipe({
+        exceptionFactory: () =>
+          new BadRequestException(
+            "Geçerli bir rezervasyon kimliği giriniz.",
+          ),
+      }),
+    )
+    id: string,
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpdateReservationDto,
   ) {
@@ -87,7 +97,16 @@ export class ReservationsController {
   })
   @ApiNotFoundResponse({ description: "Rezervasyon bulunamadı." })
   async remove(
-    @Param("id", new ParseUUIDPipe()) id: string,
+    @Param(
+      "id",
+      new ParseUUIDPipe({
+        exceptionFactory: () =>
+          new BadRequestException(
+            "Geçerli bir rezervasyon kimliği giriniz.",
+          ),
+      }),
+    )
+    id: string,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<void> {
     await this.reservationsService.remove(id, user.userId);

@@ -12,7 +12,7 @@ import { AuthModule } from "./auth/auth.module";
       validate: (environment: Record<string, unknown>) => {
         const jwtSecret = String(environment.JWT_SECRET ?? "");
         if (jwtSecret.length < 32) {
-          throw new Error("JWT_SECRET en az 32 karakter olmalıdır.");
+          throw new Error("JWT_SECRET en az 32 karakterden oluşmalıdır.");
         }
 
         const maximumDays = Number(

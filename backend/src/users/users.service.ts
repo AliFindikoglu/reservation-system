@@ -40,7 +40,9 @@ export class UsersService {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === "P2002"
       ) {
-        throw new ConflictException("Bu e-posta ile zaten bir kullanıcı var.");
+        throw new ConflictException(
+          "Bu e-posta adresiyle kayıtlı bir kullanıcı zaten bulunmaktadır.",
+        );
       }
       throw error;
     }

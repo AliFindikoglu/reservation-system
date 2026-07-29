@@ -1,24 +1,32 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { Transform } from "class-transformer";
-import { IsNotEmpty, IsOptional, IsString, Matches } from "class-validator";
+import {
+  IsNotEmpty,
+  IsString,
+  Matches,
+  ValidateIf,
+} from "class-validator";
 
 export class UpdateProfileDto {
   @ApiPropertyOptional({ example: "Ayşe Yılmaz" })
-  @IsOptional()
+  @ValidateIf((_, value) => value !== undefined)
   @Transform(({ value }) =>
     typeof value === "string" ? value.trim() : value,
   )
-  @IsString()
-  @IsNotEmpty()
+  @IsString({ message: "Adınızı ve soyadınızı giriniz." })
+  @IsNotEmpty({ message: "Adınızı ve soyadınızı giriniz." })
+  @Matches(/\S/, {
+    message: "Adınızı ve soyadınızı giriniz.",
+  })
   fullName?: string;
 
-  @ApiPropertyOptional({ example: "+905551112233" })
-  @IsOptional()
+  @ApiPropertyOptional({ example: "05061234215" })
+  @ValidateIf((_, value) => value !== undefined)
   @Transform(({ value }) =>
     typeof value === "string" ? value.trim() : value,
   )
-  @Matches(/^\+?[0-9]{10,15}$/, {
-    message: "phone geçerli bir telefon numarası olmalıdır.",
+  @Matches(/^05[0-9]{9}$/, {
+    message: "05 ile başlayan 11 haneli bir telefon numarası giriniz.",
   })
   phone?: string;
 }

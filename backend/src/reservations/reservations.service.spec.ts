@@ -83,7 +83,7 @@ describe("ReservationsService", () => {
     const rejectedResult = results[1];
     if (rejectedResult.status === "rejected") {
       expect(rejectedResult.reason).toMatchObject({
-        message: "Seçilen masa bu tarihte zaten rezerve edilmiş.",
+        message: "Seçtiğiniz masa bu tarihte zaten rezerve edilmiştir.",
       });
     }
     expect(prisma.reservation.create).toHaveBeenCalledTimes(2);
