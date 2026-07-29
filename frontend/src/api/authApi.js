@@ -28,8 +28,14 @@ export async function register(user) {
     body: JSON.stringify(user),
   });
 
-  if (!response.ok) {
-    throw new Error("Registration failed.");
+if (!response.ok) {
+    const error = await response.json();
+
+    throw new Error(
+      Array.isArray(error.message)
+        ? error.message.join(", ")
+        : error.message
+    );
   }
 
   return response.json();
