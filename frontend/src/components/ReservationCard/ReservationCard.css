@@ -1,0 +1,84 @@
+.reservation-card {
+  width: 310px;
+  min-height: 140px;
+
+  background: white;
+  border: 1px solid #ffd8c2;
+  border-radius: 14px;
+
+  padding: 18px;
+
+  display: flex;
+  gap: 18px;
+
+  transition: .2s;
+}
+
+.reservation-card:hover {
+  border-color: #ff6b00;
+  box-shadow: 0 8px 20px rgba(0,0,0,.08);
+}
+
+.table-box {
+  width: 64px;
+  height: 64px;
+
+  border: 1px solid #ffd8c2;
+  border-radius: 8px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  flex-shrink: 0;
+}
+
+.table-box span {
+  font-size: 11px;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.table-box h2 {
+  margin: 2px 0 0;
+  font-size: 34px;
+}
+
+.reservation-info {
+  flex: 1;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.reservation-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  font-weight: 600;
+}
+
+.reservation-actions {
+  display: flex;
+  justify-content: space-between;
+}
+
+.delete-btn {
+  background: transparent;
+  color: #ef4444;
+  border: none;
+  cursor: pointer;
+}
+
+.update-btn {
+  border: none;
+  border-radius: 8px;
+
+  padding: 8px 16px;
+
+  background: #f3f4f6;
+  cursor: pointer;
+}
