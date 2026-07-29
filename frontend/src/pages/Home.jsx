@@ -147,12 +147,12 @@ function Home() {
 
       localStorage.setItem("token", data.accessToken);
       setCurrentUser(data.user);
-
       setIsRegisterOpen(false);
 
-      console.log("Kayıt başarılı", data);
+      console.log("login succesfull", data);
     } catch (error) {
       console.error("Register hatası:", error);
+      throw error;
     }
   }}
 />

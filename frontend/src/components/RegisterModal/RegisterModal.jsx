@@ -1,17 +1,39 @@
 import { useState } from "react";
 import "./RegisterModal.css";
 
-function RegisterModal({ isOpen, onRegister }) {
+function RegisterModal({ isOpen, onRegister, onClose, onOpenLogin, }) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   if (!isOpen) return null;
 
+  async function handleRegister() {
+  try {
+    setError("");
+
+    await onRegister({
+      fullName,
+      email,
+      phone,
+      password,
+    });
+  } catch (err) {
+    setError(err.message);
+  }
+}
+
   return (
-    <div className="modal-overlay">
-      <div className="modal">
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e)=> e.stopPropagation()}>
+        <button
+  className="close-button"
+  onClick={onClose}
+>
+  ✕
+</button>
         <h2>Create Account</h2>
         <p>Create your Eteration account.</p>
 
@@ -56,17 +78,19 @@ function RegisterModal({ isOpen, onRegister }) {
         <button
           className="login-button"
           disabled={!fullName || !email || !phone || !password}
-          onClick={() =>
-            onRegister({
-              fullName,
-              email,
-              phone,
-              password,
-            })
-          }
+          onClick={handleRegister}
         >
           Register
         </button>
+        {error && (
+  <p className="error-message">
+    {error}
+  </p>
+)}
+        <p className="switch-auth">
+  Already have an account?{" "}
+  <span onClick={onOpenLogin}>Login</span>
+</p>
       </div>
     </div>
   );
