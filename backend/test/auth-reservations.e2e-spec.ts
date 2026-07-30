@@ -15,6 +15,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
   const firstEmail = "e2e.first@eteration.com";
   const secondEmail = "e2e.second@eteration.com";
   const password = "GucluParola1!";
+  const newPassword = "YeniGucluParola2!";
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -234,6 +235,79 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
         email: firstEmail,
         phone: "05069999999",
       });
+
+    await request(server)
+      .patch("/auth/me/password")
+      .send({
+        currentPassword: password,
+        newPassword,
+      })
+      .expect(401, {
+        statusCode: 401,
+        message: "Please sign in to perform this action.",
+      });
+
+    await request(server)
+      .patch("/auth/me/password")
+      .set("Authorization", `Bearer ${firstToken}`)
+      .send({
+        currentPassword: "YanlisParola1!",
+        newPassword,
+      })
+      .expect(401, {
+        statusCode: 401,
+        message: "The current password is incorrect.",
+      });
+
+    await request(server)
+      .patch("/auth/me/password")
+      .set("Authorization", `Bearer ${firstToken}`)
+      .send({
+        currentPassword: password,
+        newPassword: "weak",
+      })
+      .expect(400, {
+        statusCode: 400,
+        message:
+          "Please enter a password of at least 8 characters containing an uppercase letter, a lowercase letter, a number, and a symbol, with no spaces.",
+      });
+
+    await request(server)
+      .patch("/auth/me/password")
+      .set("Authorization", `Bearer ${firstToken}`)
+      .send({
+        currentPassword: password,
+        newPassword: password,
+      })
+      .expect(400, {
+        statusCode: 400,
+        message:
+          "The new password must be different from the current password.",
+      });
+
+    await request(server)
+      .patch("/auth/me/password")
+      .set("Authorization", `Bearer ${firstToken}`)
+      .send({
+        currentPassword: password,
+        newPassword,
+      })
+      .expect(200, {
+        message: "Your password has been changed successfully.",
+      });
+
+    await request(server)
+      .post("/auth/login")
+      .send({ email: firstEmail, password })
+      .expect(401, {
+        statusCode: 401,
+        message: "Please check your email address and password.",
+      });
+
+    await request(server)
+      .post("/auth/login")
+      .send({ email: firstEmail, password: newPassword })
+      .expect(200);
 
     const expiredToken = jwtService.sign(
       { userId: firstLogin.body.user.id, email: firstEmail },

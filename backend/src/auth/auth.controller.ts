@@ -20,6 +20,10 @@ import { AuthenticatedUser } from "./authenticated-user";
 import { CurrentUser } from "./current-user.decorator";
 import { JwtAuthGuard } from "./jwt-auth.guard";
 import { AuthService } from "./auth.service";
+import {
+  ChangePasswordDto,
+  ChangePasswordResponseDto,
+} from "./dto/change-password.dto";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
@@ -86,5 +90,27 @@ export class AuthController {
     @Body() dto: UpdateProfileDto,
   ) {
     return this.authService.updateProfile(user.userId, dto);
+  }
+
+  @Patch("me/password")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    description: "Changes the authenticated user's password.",
+    type: ChangePasswordResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description:
+      "The new password is invalid or matches the current password.",
+  })
+  @ApiUnauthorizedResponse({
+    description:
+      "The session is invalid or the current password is incorrect.",
+  })
+  changePassword(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return this.authService.changePassword(user.userId, dto);
   }
 }

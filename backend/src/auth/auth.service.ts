@@ -6,6 +6,7 @@ import {
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcryptjs";
 import { UsersService } from "../users/users.service";
+import { ChangePasswordDto } from "./dto/change-password.dto";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
@@ -71,6 +72,38 @@ export class AuthService {
       fullName: user.fullName,
       email: user.email,
       phone: user.phone,
+    };
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException(
+        "Your user account could not be found. Please contact the system administrator.",
+      );
+    }
+
+    const currentPasswordIsValid = await bcrypt.compare(
+      dto.currentPassword,
+      user.passwordHash,
+    );
+    if (!currentPasswordIsValid) {
+      throw new UnauthorizedException(
+        "The current password is incorrect.",
+      );
+    }
+
+    if (dto.currentPassword === dto.newPassword) {
+      throw new BadRequestException(
+        "The new password must be different from the current password.",
+      );
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    await this.usersService.updatePasswordHash(userId, passwordHash);
+
+    return {
+      message: "Your password has been changed successfully.",
     };
   }
 

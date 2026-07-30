@@ -6,6 +6,10 @@ import {
   IsString,
   Matches,
 } from "class-validator";
+import {
+  PASSWORD_PATTERN,
+  PASSWORD_VALIDATION_MESSAGE,
+} from "../../common/validation/password-policy";
 import { IsCompanyEmail } from "../../common/validators/company-email.validator";
 
 export class RegisterDto {
@@ -37,16 +41,9 @@ export class RegisterDto {
     description:
       "A password with no spaces that contains at least one uppercase letter, one lowercase letter, one number, and one symbol.",
   })
-  @IsString({
-    message:
-      "Please enter a password of at least 8 characters containing an uppercase letter, a lowercase letter, a number, and a symbol, with no spaces.",
+  @IsString({ message: PASSWORD_VALIDATION_MESSAGE })
+  @Matches(PASSWORD_PATTERN, {
+    message: PASSWORD_VALIDATION_MESSAGE,
   })
-  @Matches(
-    /^(?=.*\p{Ll})(?=.*\p{Lu})(?=.*\p{N})(?=.*[^\p{L}\p{N}\s])\S{8,}$/u,
-    {
-      message:
-        "Please enter a password of at least 8 characters containing an uppercase letter, a lowercase letter, a number, and a symbol, with no spaces.",
-    },
-  )
   password!: string;
 }

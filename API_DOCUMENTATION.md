@@ -247,6 +247,42 @@ Hatalar:
 | `400` | Gövde boş, ad/telefon geçersiz veya `email` gibi izin verilmeyen alan gönderildi |
 | `401` | JWT problemi |
 
+### 5.5 Şifre değiştirme
+
+```http
+PATCH /auth/me/password
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+```
+
+İstek gövdesi:
+
+```json
+{
+  "currentPassword": "GucluParola1!",
+  "newPassword": "YeniGucluParola2!"
+}
+```
+
+Yeni şifre en az sekiz karakterden oluşmalı; boşluk içermemeli ve en az bir büyük harf, bir küçük harf, bir sayı ve bir sembol içermelidir. Yeni şifre mevcut şifreyle aynı olamaz.
+
+Başarılı yanıt — `200 OK`:
+
+```json
+{
+  "message": "Your password has been changed successfully."
+}
+```
+
+Hatalar:
+
+| HTTP | Açıklama |
+|---:|---|
+| `400` | Yeni şifre güvenlik kurallarına uymuyor, mevcut şifreyle aynı veya desteklenmeyen alan gönderildi |
+| `401` | JWT problemi, kullanıcı bulunamadı veya mevcut şifre yanlış |
+
+Şifre değiştirildiğinde mevcut JWT iptal edilmez ve bir saatlik süresi dolana kadar geçerli kalır. Bu sürümde `tokenVersion` veya ayrı token iptal mekanizması bulunmaz.
+
 ## 6. Tables API
 
 ### 6.1 Boş masaları listeleme
@@ -459,6 +495,7 @@ mesajı döndürülür. Ayrı bir `error` alanı hata yanıtlarında yer almaz.
 8. Kullanıcının rezervasyonlarını `GET /reservations/me` üzerinden yönetin.
 9. Silme işleminde `204` yanıt gövdesini ayrıştırmayın.
 10. Profil formunda e-postayı salt okunur gösterin ve güncelleme isteğine eklemeyin.
+11. Şifre değiştirme formunda mevcut ve yeni şifreyi `PATCH /auth/me/password` endpoint’ine gönderin.
 
 Basit hata mesajı okuyucusu:
 
