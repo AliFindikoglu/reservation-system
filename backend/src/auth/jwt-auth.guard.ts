@@ -17,18 +17,18 @@ export class JwtAuthGuard extends AuthGuard("jwt") {
 
     if (errorName === "TokenExpiredError") {
       throw new UnauthorizedException(
-        "Oturum süreniz dolmuştur. Lütfen yeniden giriş yapınız.",
+        "Your session has expired. Please sign in again.",
       );
     }
 
     if (errorName === "JsonWebTokenError") {
       throw new UnauthorizedException(
-        "Oturum bilgileriniz geçersizdir. Lütfen yeniden giriş yapınız.",
+        "Your session is invalid. Please sign in again.",
       );
     }
 
     if (errorMessage === "No auth token" || !user) {
-      throw new UnauthorizedException("Bu işlem için giriş yapınız.");
+      throw new UnauthorizedException("Please sign in to perform this action.");
     }
 
     return user;

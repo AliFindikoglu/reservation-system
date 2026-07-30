@@ -7,7 +7,7 @@ export class AvailableTablesResponseDto {
   @ApiProperty({
     example: [1, 2, 4, 5],
     type: [Number],
-    description: "Seçilen tarihte boş olan masa numaraları.",
+    description: "Table numbers available on the selected date.",
   })
   tables!: number[];
 }

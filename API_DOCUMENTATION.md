@@ -44,15 +44,17 @@ Backend, DTO’da tanımlanmayan alanları kabul etmez. Fazladan bir alan gönde
 - Sistemde 1–32 arasında 32 masa bulunur.
 - Kullanıcı yalnız yapılandırılmış şirket e-posta uzantısıyla kayıt olabilir.
 - E-posta adresi küçük harfe dönüştürülerek saklanır ve benzersizdir.
-- Bir kullanıcı aynı tarih için yalnız bir rezervasyona sahip olabilir.
-- Bir masa aynı tarih için yalnız bir kullanıcı tarafından rezerve edilebilir.
+- Bir kullanıcı aynı tarih için yalnız bir aktif rezervasyona sahip olabilir.
+- Bir masa aynı tarih için yalnız bir aktif kullanıcı tarafından rezerve edilebilir.
 - Rezervasyon bugün ile yapılandırılmış ileri gün sınırı arasında oluşturulabilir. Varsayılan sınır 30 gündür ve son gün dahildir.
-- Kullanıcı yalnız kendi rezervasyonlarını görüntüleyebilir, güncelleyebilir ve silebilir.
-- Rezervasyon silindiğinde masa aynı tarih için yeniden kullanılabilir.
+- Kullanıcı yalnız kendi aktif rezervasyonlarını görüntüleyebilir.
+- Bugünkü ve gelecekteki aktif rezervasyonların tarihi ve masası güncellenebilir.
+- Rezervasyonlar fiziksel olarak silinmez; `isCancelled` ve `cancelledAt` alanlarıyla geçmişte saklanır.
+- Rezervasyon iptal edildiğinde masa ve kullanıcı aynı tarih için yeniden rezervasyon yapabilir.
 - Rezervasyon sahipliği JWT’deki kullanıcı kimliğiyle belirlenir.
 - Rezervasyon kodu veya ayrı yönetim token’ı kullanılmaz.
 
-Masa/tarih ve kullanıcı/tarih benzersizlikleri veritabanı seviyesinde korunur. Eşzamanlı çakışan isteklerden yalnız ilk tamamlanan başarılı olur.
+Aktif masa/tarih ve aktif kullanıcı/tarih benzersizlikleri PostgreSQL partial unique index’leriyle korunur. Eşzamanlı çakışan isteklerden yalnız ilk tamamlanan başarılı olur.
 
 ## 4. Veri modelleri
 
@@ -245,6 +247,42 @@ Hatalar:
 | `400` | Gövde boş, ad/telefon geçersiz veya `email` gibi izin verilmeyen alan gönderildi |
 | `401` | JWT problemi |
 
+### 5.5 Şifre değiştirme
+
+```http
+PATCH /auth/me/password
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+```
+
+İstek gövdesi:
+
+```json
+{
+  "currentPassword": "GucluParola1!",
+  "newPassword": "YeniGucluParola2!"
+}
+```
+
+Yeni şifre en az sekiz karakterden oluşmalı; boşluk içermemeli ve en az bir büyük harf, bir küçük harf, bir sayı ve bir sembol içermelidir. Yeni şifre mevcut şifreyle aynı olamaz.
+
+Başarılı yanıt — `200 OK`:
+
+```json
+{
+  "message": "Your password has been changed successfully."
+}
+```
+
+Hatalar:
+
+| HTTP | Açıklama |
+|---:|---|
+| `400` | Yeni şifre güvenlik kurallarına uymuyor, mevcut şifreyle aynı veya desteklenmeyen alan gönderildi |
+| `401` | JWT problemi, kullanıcı bulunamadı veya mevcut şifre yanlış |
+
+Şifre değiştirildiğinde mevcut JWT iptal edilmez ve bir saatlik süresi dolana kadar geçerli kalır. Bu sürümde `tokenVersion` veya ayrı token iptal mekanizması bulunmaz.
+
 ## 6. Tables API
 
 ### 6.1 Boş masaları listeleme
@@ -338,7 +376,8 @@ Rezervasyonu olmayan kullanıcı için:
 []
 ```
 
-Sonuçlar rezervasyon tarihine göre artan sırada döner.
+Sonuçlarda yalnız aktif rezervasyonlar yer alır ve kayıtlar rezervasyon tarihine göre artan sırada döner. İptal edilmiş kayıtlar veritabanında denetim geçmişi olarak korunur.
+İptal edilmiş kayıtlar kullanıcı endpoint’ine dönmez; yetkili kişiler bunları veritabanı veya Prisma Studio üzerinden görüntüleyebilir. Bu sürümde ayrı bir admin HTTP endpoint’i bulunmaz.
 
 ### 7.3 Rezervasyon güncelleme
 
@@ -382,9 +421,11 @@ Hatalar:
 | `401` | JWT problemi |
 | `403` | Rezervasyon başka kullanıcıya ait |
 | `404` | Rezervasyon veya masa bulunamadı |
-| `409` | Yeni masa/tarih dolu veya kullanıcının yeni tarihte başka rezervasyonu var |
+| `409` | Yeni masa/tarih dolu veya kullanıcının yeni tarihte başka aktif rezervasyonu var; `Update failed.` mesajı döner |
 
-### 7.4 Rezervasyon silme
+Güncelleme tek bir veritabanı işlemiyle yapılır. Çakışma durumunda işlem geri alınır ve rezervasyonun önceki tarih ve masa bilgileri korunur.
+
+### 7.4 Rezervasyon iptali
 
 ```http
 DELETE /reservations/:id
@@ -395,25 +436,25 @@ Başarılı yanıt — `204 No Content`
 
 Yanıt gövdesi yoktur. İstemci `204` yanıtında JSON ayrıştırmaya çalışmamalıdır.
 
-Silme tamamlandığında masa aynı tarih için yeniden kullanılabilir. Rezervasyonunu silen kullanıcı da aynı gün tekrar rezervasyon oluşturabilir.
+İptal işlemi kaydı fiziksel olarak silmez. `isCancelled` alanı `true`, `cancelledAt` alanı iptal zamanı olarak güncellenir. Masa aynı tarih için yeniden kullanılabilir ve rezervasyonunu iptal eden kullanıcı aynı gün tekrar rezervasyon oluşturabilir.
 
 Hatalar:
 
 | HTTP | Açıklama |
 |---:|---|
-| `400` | Rezervasyon kimliği UUID değil |
+| `400` | Rezervasyon kimliği UUID değil, rezervasyon geçmişte veya zaten iptal edilmiş |
 | `401` | JWT problemi |
 | `403` | Rezervasyon başka kullanıcıya ait |
-| `404` | Rezervasyon bulunamadı veya daha önce silindi |
+| `404` | Rezervasyon bulunamadı |
 
 ## 8. Hata yanıtları
 
-API hata yanıtlarında `message` her zaman tek bir Türkçe metindir:
+API hata yanıtlarında `message` her zaman tek bir İngilizce metindir:
 
 ```json
 {
   "statusCode": 409,
-  "message": "Seçtiğiniz masa bu tarihte zaten rezerve edilmiştir."
+  "message": "The selected table is already reserved for this date."
 }
 ```
 
@@ -422,12 +463,12 @@ Doğrulama hatası:
 ```json
 {
   "statusCode": 400,
-  "message": "Şirket e-posta adresinizi giriniz."
+  "message": "Please use your company email address."
 }
 ```
 
 Bir istekte birden fazla geçersiz alan olsa bile yalnızca ilk doğrulama
-mesajı döndürülür. İngilizce `error` alanı hata yanıtlarında yer almaz.
+mesajı döndürülür. Ayrı bir `error` alanı hata yanıtlarında yer almaz.
 
 ### HTTP durum kodları
 
@@ -454,6 +495,7 @@ mesajı döndürülür. İngilizce `error` alanı hata yanıtlarında yer almaz.
 8. Kullanıcının rezervasyonlarını `GET /reservations/me` üzerinden yönetin.
 9. Silme işleminde `204` yanıt gövdesini ayrıştırmayın.
 10. Profil formunda e-postayı salt okunur gösterin ve güncelleme isteğine eklemeyin.
+11. Şifre değiştirme formunda mevcut ve yeni şifreyi `PATCH /auth/me/password` endpoint’ine gönderin.
 
 Basit hata mesajı okuyucusu:
 

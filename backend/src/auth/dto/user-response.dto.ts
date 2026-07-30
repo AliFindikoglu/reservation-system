@@ -16,7 +16,7 @@ export class UserResponseDto {
 
 export class AuthResponseDto {
   @ApiProperty({
-    description: "Authorization: Bearer <token> başlığında kullanılacak JWT.",
+    description: "JWT used in the Authorization: Bearer <token> header.",
   })
   accessToken!: string;
 

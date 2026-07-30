@@ -15,6 +15,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
   const firstEmail = "e2e.first@eteration.com";
   const secondEmail = "e2e.second@eteration.com";
   const password = "GucluParola1!";
+  const newPassword = "YeniGucluParola2!";
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -48,15 +49,23 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
     const reservationDate = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
       .toISOString()
       .slice(0, 10);
+    const editDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
     await prisma.reservation.deleteMany({
       where: {
-        reservationDate: new Date(`${reservationDate}T00:00:00.000Z`),
+        reservationDate: {
+          in: [
+            new Date(`${reservationDate}T00:00:00.000Z`),
+            new Date(`${editDate}T00:00:00.000Z`),
+          ],
+        },
       },
     });
 
     await request(server).get("/olmayan-adres").expect(404, {
       statusCode: 404,
-      message: "İstenen API adresi bulunamadı.",
+      message: "The requested API endpoint was not found.",
     });
 
     const invalidRegister = await request(server)
@@ -70,8 +79,48 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .expect(400);
     expect(invalidRegister.body).toEqual({
       statusCode: 400,
-      message: "Adınızı ve soyadınızı giriniz.",
+      message: "Please enter your full name.",
     });
+
+    await request(server)
+      .post("/auth/register")
+      .send({
+        fullName: "Phone Validation User",
+        email: "phone.validation@eteration.com",
+        phone: "05062134217dsad",
+        password,
+      })
+      .expect(400, {
+        statusCode: 400,
+        message: "Please enter an 11-digit phone number starting with 05.",
+      });
+
+    await request(server)
+      .post("/auth/register")
+      .send({
+        fullName: "Email Validation User",
+        email: "email.validation@example.com",
+        phone: "05061112236",
+        password,
+      })
+      .expect(400, {
+        statusCode: 400,
+        message: "Please use your company email address.",
+      });
+
+    await request(server)
+      .post("/auth/register")
+      .send({
+        fullName: "Password Validation User",
+        email: "password.validation@eteration.com",
+        phone: "05061112237",
+        password: "password",
+      })
+      .expect(400, {
+        statusCode: 400,
+        message:
+          "Please enter a password of at least 8 characters containing an uppercase letter, a lowercase letter, a number, and a symbol, with no spaces.",
+      });
 
     const firstRegister = await request(server)
       .post("/auth/register")
@@ -96,7 +145,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .expect(409, {
         statusCode: 409,
         message:
-          "Bu e-posta adresiyle kayıtlı bir kullanıcı zaten bulunmaktadır.",
+          "A user with this email address already exists.",
       });
 
     await request(server)
@@ -123,14 +172,14 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .send({ email: firstEmail, password: "yanlis-parola" })
       .expect(401, {
         statusCode: 401,
-        message: "E-posta adresinizi ve parolanızı kontrol ediniz.",
+        message: "Please check your email address and password.",
       });
     const firstToken = firstLogin.body.accessToken as string;
     const secondToken = secondLogin.body.accessToken as string;
 
     await request(server).get("/auth/me").expect(401, {
       statusCode: 401,
-      message: "Bu işlem için giriş yapınız.",
+      message: "Please sign in to perform this action.",
     });
     await request(server)
       .get("/auth/me")
@@ -154,7 +203,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .expect(400, {
         statusCode: 400,
         message:
-          "Yalnızca ad soyad ve telefon numarası alanlarını güncelleyiniz.",
+          "Please update only the full name and phone number fields.",
       });
 
     await request(server)
@@ -187,6 +236,79 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
         phone: "05069999999",
       });
 
+    await request(server)
+      .patch("/auth/me/password")
+      .send({
+        currentPassword: password,
+        newPassword,
+      })
+      .expect(401, {
+        statusCode: 401,
+        message: "Please sign in to perform this action.",
+      });
+
+    await request(server)
+      .patch("/auth/me/password")
+      .set("Authorization", `Bearer ${firstToken}`)
+      .send({
+        currentPassword: "YanlisParola1!",
+        newPassword,
+      })
+      .expect(401, {
+        statusCode: 401,
+        message: "The current password is incorrect.",
+      });
+
+    await request(server)
+      .patch("/auth/me/password")
+      .set("Authorization", `Bearer ${firstToken}`)
+      .send({
+        currentPassword: password,
+        newPassword: "weak",
+      })
+      .expect(400, {
+        statusCode: 400,
+        message:
+          "Please enter a password of at least 8 characters containing an uppercase letter, a lowercase letter, a number, and a symbol, with no spaces.",
+      });
+
+    await request(server)
+      .patch("/auth/me/password")
+      .set("Authorization", `Bearer ${firstToken}`)
+      .send({
+        currentPassword: password,
+        newPassword: password,
+      })
+      .expect(400, {
+        statusCode: 400,
+        message:
+          "The new password must be different from the current password.",
+      });
+
+    await request(server)
+      .patch("/auth/me/password")
+      .set("Authorization", `Bearer ${firstToken}`)
+      .send({
+        currentPassword: password,
+        newPassword,
+      })
+      .expect(200, {
+        message: "Your password has been changed successfully.",
+      });
+
+    await request(server)
+      .post("/auth/login")
+      .send({ email: firstEmail, password })
+      .expect(401, {
+        statusCode: 401,
+        message: "Please check your email address and password.",
+      });
+
+    await request(server)
+      .post("/auth/login")
+      .send({ email: firstEmail, password: newPassword })
+      .expect(200);
+
     const expiredToken = jwtService.sign(
       { userId: firstLogin.body.user.id, email: firstEmail },
       { expiresIn: -1 },
@@ -197,7 +319,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .expect(401, {
         statusCode: 401,
         message:
-          "Oturum süreniz dolmuştur. Lütfen yeniden giriş yapınız.",
+          "Your session has expired. Please sign in again.",
       });
 
     await request(server)
@@ -237,7 +359,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .send({ tableNumber: 1, reservationDate })
       .expect(409, {
         statusCode: 409,
-        message: "Seçtiğiniz masa bu tarihte zaten rezerve edilmiştir.",
+        message: "The selected table is already reserved for this date.",
       });
 
     await request(server)
@@ -246,7 +368,69 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .send({ tableNumber: 2, reservationDate })
       .expect(409, {
         statusCode: 409,
-        message: "Aynı gün için yalnızca bir rezervasyon oluşturabilirsiniz.",
+        message: "You can create only one reservation per day.",
+      });
+
+    await request(server)
+      .post("/reservations")
+      .set("Authorization", `Bearer ${secondToken}`)
+      .send({ tableNumber: 2, reservationDate: editDate })
+      .expect(201);
+
+    await request(server)
+      .patch(`/reservations/${created.body.id}`)
+      .set("Authorization", `Bearer ${firstToken}`)
+      .send({ tableNumber: 3, reservationDate: editDate })
+      .expect(200, {
+        id: created.body.id,
+        reservationDate: editDate,
+        tableNumber: 3,
+      });
+
+    const availableAfterEditOnOldDate = await request(server)
+      .get("/tables/available")
+      .query({ date: reservationDate })
+      .expect(200);
+    expect(availableAfterEditOnOldDate.body.tables).toContain(1);
+
+    const availableAfterEditOnNewDate = await request(server)
+      .get("/tables/available")
+      .query({ date: editDate })
+      .expect(200);
+    expect(availableAfterEditOnNewDate.body.tables).not.toContain(3);
+
+    await request(server)
+      .patch(`/reservations/${created.body.id}`)
+      .set("Authorization", `Bearer ${firstToken}`)
+      .send({ tableNumber: 2, reservationDate: editDate })
+      .expect(409, {
+        statusCode: 409,
+        message: "Update failed.",
+      });
+
+    const firstUserReservationsAfterFailedEdit = await request(server)
+      .get("/reservations/me")
+      .set("Authorization", `Bearer ${firstToken}`)
+      .expect(200);
+    expect(firstUserReservationsAfterFailedEdit.body).toContainEqual({
+      id: created.body.id,
+      reservationDate: editDate,
+      tableNumber: 3,
+    });
+
+    const secondReservationForFirstUser = await request(server)
+      .post("/reservations")
+      .set("Authorization", `Bearer ${firstToken}`)
+      .send({ tableNumber: 4, reservationDate })
+      .expect(201);
+
+    await request(server)
+      .patch(`/reservations/${secondReservationForFirstUser.body.id}`)
+      .set("Authorization", `Bearer ${firstToken}`)
+      .send({ tableNumber: 4, reservationDate: editDate })
+      .expect(409, {
+        statusCode: 409,
+        message: "Update failed.",
       });
 
     await request(server)
@@ -255,7 +439,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .send({ tableNumber: 2 })
       .expect(400, {
         statusCode: 400,
-        message: "Geçerli bir rezervasyon kimliği giriniz.",
+        message: "Please enter a valid reservation ID.",
       });
 
     await request(server)
@@ -265,7 +449,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .expect(403, {
         statusCode: 403,
         message:
-          "Bu rezervasyon üzerinde işlem yapma yetkiniz bulunmamaktadır.",
+          "You do not have permission to modify this reservation.",
       });
     await request(server)
       .delete(`/reservations/${created.body.id}`)
@@ -273,7 +457,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .expect(403, {
         statusCode: 403,
         message:
-          "Bu rezervasyon üzerinde işlem yapma yetkiniz bulunmamaktadır.",
+          "You do not have permission to modify this reservation.",
       });
 
     await request(server)
@@ -281,7 +465,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .set("Authorization", `Bearer ${firstToken}`)
       .expect(404, {
         statusCode: 404,
-        message: "Rezervasyon bulunamadı.",
+        message: "Reservation not found.",
       });
 
     await request(server)
@@ -289,16 +473,43 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .set("Authorization", `Bearer ${firstToken}`)
       .expect(204);
 
+    const cancelledReservation =
+      await prisma.reservation.findUnique({
+        where: { id: created.body.id },
+      });
+    expect(cancelledReservation).toMatchObject({
+      id: created.body.id,
+      isCancelled: true,
+      cancelledAt: expect.any(Date),
+    });
+
+    const firstUserReservationsAfterCancellation = await request(server)
+      .get("/reservations/me")
+      .set("Authorization", `Bearer ${firstToken}`)
+      .expect(200);
+    expect(firstUserReservationsAfterCancellation.body).not.toContainEqual(
+      expect.objectContaining({ id: created.body.id }),
+    );
+
     const availableAfterDelete = await request(server)
       .get("/tables/available")
-      .query({ date: reservationDate })
+      .query({ date: editDate })
       .expect(200);
-    expect(availableAfterDelete.body.tables).toContain(1);
+    expect(availableAfterDelete.body.tables).toContain(3);
 
     await request(server)
       .post("/reservations")
-      .set("Authorization", `Bearer ${secondToken}`)
-      .send({ tableNumber: 1, reservationDate })
+      .set("Authorization", `Bearer ${firstToken}`)
+      .send({ tableNumber: 3, reservationDate: editDate })
       .expect(201);
+
+    await request(server)
+      .patch(`/reservations/${created.body.id}`)
+      .set("Authorization", `Bearer ${firstToken}`)
+      .send({ tableNumber: 5, reservationDate: editDate })
+      .expect(400, {
+        statusCode: 400,
+        message: "Cancelled reservations cannot be modified.",
+      });
   });
 });

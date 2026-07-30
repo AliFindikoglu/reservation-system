@@ -14,7 +14,7 @@ async function bootstrap() {
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle("Masa Rezervasyon API")
-    .setDescription("Şirket içi masa rezervasyon sistemi API dokümantasyonu")
+    .setDescription("Internal desk reservation system API documentation")
     .setVersion("1.0")
     .addBearerAuth()
     .build();

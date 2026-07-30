@@ -9,7 +9,7 @@ export class TablesService {
   async findAvailable(date: string) {
     const reservationDate = parseReservationDate(date);
     const reservedTables = await this.prisma.reservation.findMany({
-      where: { reservationDate },
+      where: { reservationDate, isCancelled: false },
       select: { tableId: true },
     });
     const reservedIds = new Set(

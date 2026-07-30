@@ -1,5 +1,9 @@
 import { BadRequestException } from "@nestjs/common";
-import { parseReservationDate } from "./reservation-date";
+import {
+  assertReservationCanBeCancelled,
+  assertReservationCanBeUpdated,
+  parseReservationDate,
+} from "./reservation-date";
 
 describe("parseReservationDate", () => {
   beforeEach(() => {
@@ -24,6 +28,16 @@ describe("parseReservationDate", () => {
     date.setUTCDate(date.getUTCDate() + 31);
     expect(() => parseReservationDate(date.toISOString().slice(0, 10))).toThrow(
       BadRequestException,
+    );
+  });
+
+  it("geçmiş rezervasyonun güncellenmesini ve iptalini engeller", () => {
+    const pastDate = new Date("2000-01-01T00:00:00.000Z");
+    expect(() => assertReservationCanBeUpdated(pastDate)).toThrow(
+      new BadRequestException("Past reservations cannot be updated."),
+    );
+    expect(() => assertReservationCanBeCancelled(pastDate)).toThrow(
+      new BadRequestException("Past reservations cannot be cancelled."),
     );
   });
 });

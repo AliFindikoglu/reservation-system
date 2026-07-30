@@ -1,4 +1,7 @@
-import { UnauthorizedException } from "@nestjs/common";
+import {
+  BadRequestException,
+  UnauthorizedException,
+} from "@nestjs/common";
 import * as bcrypt from "bcryptjs";
 import { AuthService } from "./auth.service";
 
@@ -8,6 +11,7 @@ describe("AuthService", () => {
     findByEmail: jest.fn(),
     findById: jest.fn(),
     updateProfile: jest.fn(),
+    updatePasswordHash: jest.fn(),
   };
   const jwt = { sign: jest.fn().mockReturnValue("jwt-token") };
   const service = new AuthService(users as never, jwt as never);
@@ -99,5 +103,64 @@ describe("AuthService", () => {
       fullName: "Ayşe Kaya",
       phone: "05069999999",
     });
+  });
+
+  it("mevcut parola doğruysa yeni parolayı hashleyerek günceller", async () => {
+    users.findById.mockResolvedValue({
+      id: "u1",
+      passwordHash: await bcrypt.hash("GucluParola1!", 10),
+    });
+    users.updatePasswordHash.mockResolvedValue({ id: "u1" });
+
+    await expect(
+      service.changePassword("u1", {
+        currentPassword: "GucluParola1!",
+        newPassword: "YeniGucluParola2!",
+      }),
+    ).resolves.toEqual({
+      message: "Your password has been changed successfully.",
+    });
+
+    const updatedHash = users.updatePasswordHash.mock.calls[0][1] as string;
+    expect(updatedHash).not.toBe("YeniGucluParola2!");
+    await expect(
+      bcrypt.compare("YeniGucluParola2!", updatedHash),
+    ).resolves.toBe(true);
+  });
+
+  it("yanlış mevcut parolayla değişikliği reddeder", async () => {
+    users.findById.mockResolvedValue({
+      id: "u1",
+      passwordHash: await bcrypt.hash("GucluParola1!", 10),
+    });
+
+    await expect(
+      service.changePassword("u1", {
+        currentPassword: "YanlisParola1!",
+        newPassword: "YeniGucluParola2!",
+      }),
+    ).rejects.toEqual(
+      new UnauthorizedException("The current password is incorrect."),
+    );
+    expect(users.updatePasswordHash).not.toHaveBeenCalled();
+  });
+
+  it("yeni parola mevcut parolayla aynıysa değişikliği reddeder", async () => {
+    users.findById.mockResolvedValue({
+      id: "u1",
+      passwordHash: await bcrypt.hash("GucluParola1!", 10),
+    });
+
+    await expect(
+      service.changePassword("u1", {
+        currentPassword: "GucluParola1!",
+        newPassword: "GucluParola1!",
+      }),
+    ).rejects.toEqual(
+      new BadRequestException(
+        "The new password must be different from the current password.",
+      ),
+    );
+    expect(users.updatePasswordHash).not.toHaveBeenCalled();
   });
 });

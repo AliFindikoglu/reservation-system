@@ -24,7 +24,7 @@ export function IsCompanyEmail(validationOptions?: ValidationOptions) {
           );
         },
         defaultMessage(args: ValidationArguments) {
-          return `${args.property} şirket e-posta uzantısını kullanmalıdır.`;
+          return `${args.property} must use the company email domain.`;
         },
       },
     });

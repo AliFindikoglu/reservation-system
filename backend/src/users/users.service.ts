@@ -27,6 +27,13 @@ export class UsersService {
     });
   }
 
+  updatePasswordHash(id: string, passwordHash: string) {
+    return this.prisma.user.update({
+      where: { id },
+      data: { passwordHash },
+    });
+  }
+
   async create(data: {
     fullName: string;
     email: string;
@@ -41,7 +48,7 @@ export class UsersService {
         error.code === "P2002"
       ) {
         throw new ConflictException(
-          "Bu e-posta adresiyle kayıtlı bir kullanıcı zaten bulunmaktadır.",
+          "A user with this email address already exists.",
         );
       }
       throw error;

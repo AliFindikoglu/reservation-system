@@ -21,10 +21,22 @@ function getTodayInBusinessTimeZone(): string {
   return `${year}-${month}-${day}`;
 }
 
+export function assertReservationCanBeUpdated(date: Date): void {
+  if (date.toISOString().slice(0, 10) < getTodayInBusinessTimeZone()) {
+    throw new BadRequestException("Past reservations cannot be updated.");
+  }
+}
+
+export function assertReservationCanBeCancelled(date: Date): void {
+  if (date.toISOString().slice(0, 10) < getTodayInBusinessTimeZone()) {
+    throw new BadRequestException("Past reservations cannot be cancelled.");
+  }
+}
+
 export function parseReservationDate(value: string): Date {
   if (!DATE_PATTERN.test(value)) {
     throw new BadRequestException(
-      "Rezervasyon tarihini YYYY-MM-DD biçiminde giriniz.",
+      "Please enter the reservation date in YYYY-MM-DD format.",
     );
   }
 
@@ -33,12 +45,12 @@ export function parseReservationDate(value: string): Date {
     Number.isNaN(date.getTime()) ||
     date.toISOString().slice(0, 10) !== value
   ) {
-    throw new BadRequestException("Geçerli bir rezervasyon tarihi giriniz.");
+    throw new BadRequestException("Please enter a valid reservation date.");
   }
 
   const today = getTodayInBusinessTimeZone();
   if (value < today) {
-    throw new BadRequestException("Bugün veya ileri bir tarih seçiniz.");
+    throw new BadRequestException("Please select today or a future date.");
   }
 
   const maximumDate = new Date(`${today}T00:00:00.000Z`);
@@ -47,7 +59,7 @@ export function parseReservationDate(value: string): Date {
   );
   if (date > maximumDate) {
     throw new BadRequestException(
-      `Bugünden itibaren en fazla ${getMaximumReservationDaysAhead()} gün içinde bir tarih seçiniz.`,
+      `Please select a date within ${getMaximumReservationDaysAhead()} days from today.`,
     );
   }
 

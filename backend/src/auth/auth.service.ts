@@ -6,6 +6,7 @@ import {
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcryptjs";
 import { UsersService } from "../users/users.service";
+import { ChangePasswordDto } from "./dto/change-password.dto";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
@@ -33,7 +34,7 @@ export class AuthService {
     );
     if (!user || !(await bcrypt.compare(dto.password, user.passwordHash))) {
       throw new UnauthorizedException(
-        "E-posta adresinizi ve parolanızı kontrol ediniz.",
+        "Please check your email address and password.",
       );
     }
     return this.buildAuthResponse(user);
@@ -43,7 +44,7 @@ export class AuthService {
     const user = await this.usersService.findById(userId);
     if (!user) {
       throw new UnauthorizedException(
-        "Kullanıcı hesabınız bulunamadı. Lütfen sistem yöneticisiyle iletişime geçiniz.",
+        "Your user account could not be found. Please contact the system administrator.",
       );
     }
     return {
@@ -57,7 +58,7 @@ export class AuthService {
   async updateProfile(userId: string, dto: UpdateProfileDto) {
     if (dto.fullName === undefined && dto.phone === undefined) {
       throw new BadRequestException(
-        "Ad soyad veya telefon numarası alanlarından en az birini gönderiniz.",
+        "Please provide at least one of the following fields: full name or phone number.",
       );
     }
 
@@ -71,6 +72,38 @@ export class AuthService {
       fullName: user.fullName,
       email: user.email,
       phone: user.phone,
+    };
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException(
+        "Your user account could not be found. Please contact the system administrator.",
+      );
+    }
+
+    const currentPasswordIsValid = await bcrypt.compare(
+      dto.currentPassword,
+      user.passwordHash,
+    );
+    if (!currentPasswordIsValid) {
+      throw new UnauthorizedException(
+        "The current password is incorrect.",
+      );
+    }
+
+    if (dto.currentPassword === dto.newPassword) {
+      throw new BadRequestException(
+        "The new password must be different from the current password.",
+      );
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    await this.usersService.updatePasswordHash(userId, passwordHash);
+
+    return {
+      message: "Your password has been changed successfully.",
     };
   }
 

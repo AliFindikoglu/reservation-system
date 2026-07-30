@@ -11,7 +11,7 @@ export class TablesController {
 
   @Get("available")
   @ApiOkResponse({
-    description: "Seçilen tarihte boş olan masa numaraları.",
+    description: "Table numbers available on the selected date.",
     type: AvailableTablesResponseDto,
   })
   findAvailable(@Query() query: AvailableTablesQueryDto) {
