@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   NotFoundException,
@@ -14,14 +15,13 @@ describe("ReservationsService", () => {
       findMany: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
-      delete: jest.fn(),
     },
   };
   const service = new ReservationsService(prisma as never);
   const dto = { tableNumber: 1, reservationDate: "2099-01-01" };
   beforeEach(() => {
     process.env.MAX_RESERVATION_DAYS_AHEAD = "999999";
-    jest.clearAllMocks();
+    jest.resetAllMocks();
   });
 
   it("giriş yapan kullanıcı adına rezervasyon oluşturur", async () => {
@@ -92,8 +92,127 @@ describe("ReservationsService", () => {
     prisma.reservation.findMany.mockResolvedValue([]);
     await service.findMyReservations("user-1");
     expect(prisma.reservation.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { userId: "user-1" } }),
+      expect.objectContaining({
+        where: { userId: "user-1", isCancelled: false },
+      }),
     );
+  });
+  it("rezervasyon kimliğini değiştirmeden tarih ve masayı günceller", async () => {
+    prisma.reservation.findUnique.mockResolvedValue({
+      id: "r1",
+      userId: "user-1",
+      tableId: 1,
+      reservationDate: new Date("2099-01-01"),
+      isCancelled: false,
+      table: { number: 1 },
+    });
+    prisma.table.findUnique.mockResolvedValue({ id: 2, number: 2 });
+    prisma.reservation.update.mockResolvedValue({
+      id: "r1",
+      reservationDate: new Date("2099-01-02"),
+      table: { number: 2 },
+    });
+
+    await expect(
+      service.update("r1", "user-1", {
+        tableNumber: 2,
+        reservationDate: "2099-01-02",
+      }),
+    ).resolves.toEqual({
+      id: "r1",
+      reservationDate: "2099-01-02",
+      tableNumber: 2,
+    });
+    expect(prisma.reservation.update).toHaveBeenCalledWith({
+      where: { id: "r1" },
+      data: {
+        tableId: 2,
+        reservationDate: new Date("2099-01-02T00:00:00.000Z"),
+      },
+      include: { table: true },
+    });
+  });
+  it("güncelleme çakışmasında Update failed mesajı döndürür", async () => {
+    prisma.reservation.findUnique.mockResolvedValue({
+      id: "r1",
+      userId: "user-1",
+      tableId: 1,
+      reservationDate: new Date("2099-01-01"),
+      isCancelled: false,
+      table: { number: 1 },
+    });
+    prisma.table.findUnique.mockResolvedValue({ id: 2, number: 2 });
+    prisma.reservation.update.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError(
+        "Unique constraint failed",
+        {
+          code: "P2002",
+          clientVersion: Prisma.prismaVersion.client,
+          meta: {
+            target: ["tableId", "reservationDate"],
+          },
+        },
+      ),
+    );
+
+    await expect(
+      service.update("r1", "user-1", {
+        tableNumber: 2,
+        reservationDate: "2099-01-02",
+      }),
+    ).rejects.toEqual(new ConflictException("Update failed."));
+  });
+  it("geçmiş rezervasyonun güncellenmesini engeller", async () => {
+    prisma.reservation.findUnique.mockResolvedValue({
+      id: "r1",
+      userId: "user-1",
+      tableId: 1,
+      reservationDate: new Date("2000-01-01"),
+      isCancelled: false,
+      table: { number: 1 },
+    });
+
+    await expect(
+      service.update("r1", "user-1", { tableNumber: 2 }),
+    ).rejects.toEqual(
+      new BadRequestException("Past reservations cannot be updated."),
+    );
+    expect(prisma.reservation.update).not.toHaveBeenCalled();
+  });
+  it("iptal edilmiş rezervasyonun güncellenmesini engeller", async () => {
+    prisma.reservation.findUnique.mockResolvedValue({
+      id: "r1",
+      userId: "user-1",
+      tableId: 1,
+      reservationDate: new Date("2099-01-01"),
+      isCancelled: true,
+      table: { number: 1 },
+    });
+
+    await expect(
+      service.update("r1", "user-1", { tableNumber: 2 }),
+    ).rejects.toEqual(
+      new BadRequestException(
+        "Cancelled reservations cannot be modified.",
+      ),
+    );
+  });
+  it("boş güncelleme gövdesini reddeder", async () => {
+    prisma.reservation.findUnique.mockResolvedValue({
+      id: "r1",
+      userId: "user-1",
+      tableId: 1,
+      reservationDate: new Date("2099-01-01"),
+      isCancelled: false,
+      table: { number: 1 },
+    });
+
+    await expect(service.update("r1", "user-1", {})).rejects.toEqual(
+      new BadRequestException(
+        "Please provide a reservation date or table number to update.",
+      ),
+    );
+    expect(prisma.reservation.update).not.toHaveBeenCalled();
   });
   it("başka kullanıcının rezervasyonunu değiştirmeyi engeller", async () => {
     prisma.reservation.findUnique.mockResolvedValue({
@@ -111,15 +230,21 @@ describe("ReservationsService", () => {
       NotFoundException,
     );
   });
-  it("sahibi rezervasyonu silince kayıt kaldırılır", async () => {
+  it("sahibi rezervasyonu iptal edince kayıt soft-delete edilir", async () => {
     prisma.reservation.findUnique.mockResolvedValue({
       id: "r1",
       userId: "user-1",
+      reservationDate: new Date("2099-01-01"),
+      isCancelled: false,
       table: { number: 1 },
     });
     await service.remove("r1", "user-1");
-    expect(prisma.reservation.delete).toHaveBeenCalledWith({
+    expect(prisma.reservation.update).toHaveBeenCalledWith({
       where: { id: "r1" },
+      data: {
+        isCancelled: true,
+        cancelledAt: expect.any(Date),
+      },
     });
   });
 });

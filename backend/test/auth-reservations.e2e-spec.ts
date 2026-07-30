@@ -48,9 +48,17 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
     const reservationDate = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
       .toISOString()
       .slice(0, 10);
+    const editDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
     await prisma.reservation.deleteMany({
       where: {
-        reservationDate: new Date(`${reservationDate}T00:00:00.000Z`),
+        reservationDate: {
+          in: [
+            new Date(`${reservationDate}T00:00:00.000Z`),
+            new Date(`${editDate}T00:00:00.000Z`),
+          ],
+        },
       },
     });
 
@@ -290,6 +298,68 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       });
 
     await request(server)
+      .post("/reservations")
+      .set("Authorization", `Bearer ${secondToken}`)
+      .send({ tableNumber: 2, reservationDate: editDate })
+      .expect(201);
+
+    await request(server)
+      .patch(`/reservations/${created.body.id}`)
+      .set("Authorization", `Bearer ${firstToken}`)
+      .send({ tableNumber: 3, reservationDate: editDate })
+      .expect(200, {
+        id: created.body.id,
+        reservationDate: editDate,
+        tableNumber: 3,
+      });
+
+    const availableAfterEditOnOldDate = await request(server)
+      .get("/tables/available")
+      .query({ date: reservationDate })
+      .expect(200);
+    expect(availableAfterEditOnOldDate.body.tables).toContain(1);
+
+    const availableAfterEditOnNewDate = await request(server)
+      .get("/tables/available")
+      .query({ date: editDate })
+      .expect(200);
+    expect(availableAfterEditOnNewDate.body.tables).not.toContain(3);
+
+    await request(server)
+      .patch(`/reservations/${created.body.id}`)
+      .set("Authorization", `Bearer ${firstToken}`)
+      .send({ tableNumber: 2, reservationDate: editDate })
+      .expect(409, {
+        statusCode: 409,
+        message: "Update failed.",
+      });
+
+    const firstUserReservationsAfterFailedEdit = await request(server)
+      .get("/reservations/me")
+      .set("Authorization", `Bearer ${firstToken}`)
+      .expect(200);
+    expect(firstUserReservationsAfterFailedEdit.body).toContainEqual({
+      id: created.body.id,
+      reservationDate: editDate,
+      tableNumber: 3,
+    });
+
+    const secondReservationForFirstUser = await request(server)
+      .post("/reservations")
+      .set("Authorization", `Bearer ${firstToken}`)
+      .send({ tableNumber: 4, reservationDate })
+      .expect(201);
+
+    await request(server)
+      .patch(`/reservations/${secondReservationForFirstUser.body.id}`)
+      .set("Authorization", `Bearer ${firstToken}`)
+      .send({ tableNumber: 4, reservationDate: editDate })
+      .expect(409, {
+        statusCode: 409,
+        message: "Update failed.",
+      });
+
+    await request(server)
       .patch("/reservations/gecersiz-kimlik")
       .set("Authorization", `Bearer ${firstToken}`)
       .send({ tableNumber: 2 })
@@ -329,16 +399,43 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .set("Authorization", `Bearer ${firstToken}`)
       .expect(204);
 
+    const cancelledReservation =
+      await prisma.reservation.findUnique({
+        where: { id: created.body.id },
+      });
+    expect(cancelledReservation).toMatchObject({
+      id: created.body.id,
+      isCancelled: true,
+      cancelledAt: expect.any(Date),
+    });
+
+    const firstUserReservationsAfterCancellation = await request(server)
+      .get("/reservations/me")
+      .set("Authorization", `Bearer ${firstToken}`)
+      .expect(200);
+    expect(firstUserReservationsAfterCancellation.body).not.toContainEqual(
+      expect.objectContaining({ id: created.body.id }),
+    );
+
     const availableAfterDelete = await request(server)
       .get("/tables/available")
-      .query({ date: reservationDate })
+      .query({ date: editDate })
       .expect(200);
-    expect(availableAfterDelete.body.tables).toContain(1);
+    expect(availableAfterDelete.body.tables).toContain(3);
 
     await request(server)
       .post("/reservations")
-      .set("Authorization", `Bearer ${secondToken}`)
-      .send({ tableNumber: 1, reservationDate })
+      .set("Authorization", `Bearer ${firstToken}`)
+      .send({ tableNumber: 3, reservationDate: editDate })
       .expect(201);
+
+    await request(server)
+      .patch(`/reservations/${created.body.id}`)
+      .set("Authorization", `Bearer ${firstToken}`)
+      .send({ tableNumber: 5, reservationDate: editDate })
+      .expect(400, {
+        statusCode: 400,
+        message: "Cancelled reservations cannot be modified.",
+      });
   });
 });

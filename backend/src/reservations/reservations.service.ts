@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -8,7 +9,11 @@ import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateReservationDto } from "./dto/create-reservation.dto";
 import { UpdateReservationDto } from "./dto/update-reservation.dto";
-import { parseReservationDate } from "./reservation-date";
+import {
+  assertReservationCanBeCancelled,
+  assertReservationCanBeUpdated,
+  parseReservationDate,
+} from "./reservation-date";
 
 @Injectable()
 export class ReservationsService {
@@ -31,7 +36,7 @@ export class ReservationsService {
 
   async findMyReservations(userId: string) {
     const reservations = await this.prisma.reservation.findMany({
-      where: { userId },
+      where: { userId, isCancelled: false },
       include: { table: true },
       orderBy: { reservationDate: "asc" },
     });
@@ -40,6 +45,18 @@ export class ReservationsService {
 
   async update(id: string, userId: string, dto: UpdateReservationDto) {
     const existing = await this.findOwned(id, userId);
+    if (existing.isCancelled) {
+      throw new BadRequestException(
+        "Cancelled reservations cannot be modified.",
+      );
+    }
+    assertReservationCanBeUpdated(existing.reservationDate);
+    if (dto.reservationDate === undefined && dto.tableNumber === undefined) {
+      throw new BadRequestException(
+        "Please provide a reservation date or table number to update.",
+      );
+    }
+
     const reservationDate = dto.reservationDate
       ? parseReservationDate(dto.reservationDate)
       : existing.reservationDate;
@@ -54,14 +71,28 @@ export class ReservationsService {
       });
       return this.toResponse(reservation);
     } catch (error) {
-      this.handleConflict(error);
+      if (this.isUniqueConstraintError(error)) {
+        throw new ConflictException("Update failed.");
+      }
       throw error;
     }
   }
 
   async remove(id: string, userId: string) {
-    await this.findOwned(id, userId);
-    await this.prisma.reservation.delete({ where: { id } });
+    const existing = await this.findOwned(id, userId);
+    if (existing.isCancelled) {
+      throw new BadRequestException(
+        "Cancelled reservations cannot be modified.",
+      );
+    }
+    assertReservationCanBeCancelled(existing.reservationDate);
+    await this.prisma.reservation.update({
+      where: { id },
+      data: {
+        isCancelled: true,
+        cancelledAt: new Date(),
+      },
+    });
   }
 
   private async findTable(number: number) {
@@ -82,12 +113,14 @@ export class ReservationsService {
     return reservation;
   }
   private handleConflict(error: unknown) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    ) {
-      const target = error.meta?.target;
-      if (Array.isArray(target) && target.includes("userId"))
+    if (this.isUniqueConstraintError(error)) {
+      const target = Array.isArray(error.meta?.target)
+        ? error.meta.target.join(",")
+        : String(error.meta?.target ?? "");
+      if (
+        target.includes("userId") ||
+        target.includes("active_user_date")
+      )
         throw new ConflictException(
           "You can create only one reservation per day.",
         );
@@ -95,6 +128,15 @@ export class ReservationsService {
         "The selected table is already reserved for this date.",
       );
     }
+  }
+
+  private isUniqueConstraintError(
+    error: unknown,
+  ): error is Prisma.PrismaClientKnownRequestError {
+    return (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    );
   }
   private toResponse(reservation: {
     id: string;

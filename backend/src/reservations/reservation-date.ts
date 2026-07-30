@@ -21,6 +21,18 @@ function getTodayInBusinessTimeZone(): string {
   return `${year}-${month}-${day}`;
 }
 
+export function assertReservationCanBeUpdated(date: Date): void {
+  if (date.toISOString().slice(0, 10) < getTodayInBusinessTimeZone()) {
+    throw new BadRequestException("Past reservations cannot be updated.");
+  }
+}
+
+export function assertReservationCanBeCancelled(date: Date): void {
+  if (date.toISOString().slice(0, 10) < getTodayInBusinessTimeZone()) {
+    throw new BadRequestException("Past reservations cannot be cancelled.");
+  }
+}
+
 export function parseReservationDate(value: string): Date {
   if (!DATE_PATTERN.test(value)) {
     throw new BadRequestException(

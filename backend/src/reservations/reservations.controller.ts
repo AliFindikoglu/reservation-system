@@ -12,7 +12,9 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiConflictResponse,
   ApiCreatedResponse,
   ApiForbiddenResponse,
   ApiNoContentResponse,
@@ -69,6 +71,13 @@ export class ReservationsController {
   @ApiForbiddenResponse({
     description: "The reservation belongs to another user.",
   })
+  @ApiBadRequestResponse({
+    description:
+      "The reservation is in the past, cancelled, or the request is invalid.",
+  })
+  @ApiConflictResponse({
+    description: "The update conflicts with an active reservation.",
+  })
   @ApiNotFoundResponse({ description: "Reservation not found." })
   update(
     @Param(
@@ -90,7 +99,11 @@ export class ReservationsController {
   @Delete(":id")
   @HttpCode(204)
   @ApiNoContentResponse({
-    description: "Deletes the reservation and makes the table available again.",
+    description:
+      "Cancels the reservation and makes the table available again.",
+  })
+  @ApiBadRequestResponse({
+    description: "The reservation is in the past or already cancelled.",
   })
   @ApiForbiddenResponse({
     description: "The reservation belongs to another user.",
