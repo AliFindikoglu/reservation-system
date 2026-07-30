@@ -11,14 +11,14 @@ import ReservationSummary from "../components/ReservationSummary/ReservationSumm
 import SeatLegend from "../components/SeatLegend/SeatLegend";
 import RegisterModal from "../components/RegisterModal/RegisterModal";
 
-import { getAvailableTables } from "../api/tableApi";
+import { getTableStatuses } from "../api/tableApi";
 import { createReservation } from "../api/reservationsApi";
 
 import { useAuth } from "../context/AuthContext";
 
 
 function Home() {
-  const [availableTables, setAvailableTables] = useState([]);
+  const [tableStatuses, setTableStatuses] = useState([]);
   const [selectedSeat, setSelectedSeat] = useState(null);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
@@ -61,14 +61,18 @@ async function handleRegister(user) {
 //.....................................................................
 
 
-  async function loadTables() {
-    try {
-      const data = await getAvailableTables(selectedDate);
-      setAvailableTables(data.tables);
-    } catch (error) {
-      console.error("Error fetching available tables:", error);
-    }
+async function loadTables() {
+  try {
+    const data = await getTableStatuses(selectedDate);
+
+    console.log("API RESPONSE:", data);
+    console.log("TABLES:", data.tables);
+
+    setTableStatuses(data.tables);
+  } catch (error) {
+    console.error(error);
   }
+}
 
 
   useEffect(() => {
@@ -105,6 +109,8 @@ async function handleRegister(user) {
       alert("Reservation failed.");
     }
   }
+
+ 
   //.....................................................................
 
 
@@ -119,13 +125,13 @@ async function handleRegister(user) {
             onLogin={() => setIsLoginOpen(true)}
             onRegister={() => setIsRegisterOpen(true)}>
               <DateSelector
-  selectedDate={new Date(selectedDate)}
-  onDateChange={(date) =>
-    setSelectedDate(date.toISOString().split("T")[0])
-  }
-  minDate={today}
-  maxDate={maxDate}
-/>
+                selectedDate={new Date(selectedDate)}
+                onDateChange={(date) =>
+                    setSelectedDate(date.toISOString().split("T")[0])
+                }
+                minDate={today}
+                maxDate={maxDate}
+                />
             </Header>
           </div>
 
@@ -133,7 +139,7 @@ async function handleRegister(user) {
 
           <div className="seat-grid-wrapper">
             <SeatGrid
-              availableTables={availableTables}
+              tableStatuses={tableStatuses}
               selectedSeat={selectedSeat}
               onSeatClick={handleSeatClick}
             />

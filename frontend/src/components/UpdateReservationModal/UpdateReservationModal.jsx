@@ -13,7 +13,7 @@ function UpdateReservationModal({
   const [reservationDate, setReservationDate] = useState("");
   const [selectedSeat, setSelectedSeat] = useState(null);
   const [availableTables, setAvailableTables] = useState([]);
-
+  const [tableStatuses, setTableStatuses] = useState([]);
   useEffect(() => {
     if (!reservation) return;
 
@@ -24,7 +24,7 @@ function UpdateReservationModal({
     setSelectedSeat(reservation.tableNumber);
   }, [reservation]);
 
-  const today = new Date();
+const today = new Date();
 
 const maxDate = new Date();
 maxDate.setMonth(maxDate.getMonth() + 1);
@@ -51,7 +51,7 @@ maxDate.setMonth(maxDate.getMonth() + 1);
             />
 
         <SeatGrid
-          availableTables={availableTables}
+          tableStatuses={tableStatuses}
           selectedSeat={selectedSeat}
           onSeatClick={setSelectedSeat}
         />
