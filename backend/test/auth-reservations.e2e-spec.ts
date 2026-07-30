@@ -327,6 +327,14 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .send({ tableNumber: 1, reservationDate })
       .expect(401);
 
+    await request(server)
+      .get("/tables/statuses")
+      .query({ date: reservationDate })
+      .expect(401, {
+        statusCode: 401,
+        message: "Please sign in to perform this action.",
+      });
+
     const availableBeforeCreate = await request(server)
       .get("/tables/available")
       .query({ date: reservationDate })
@@ -334,6 +342,17 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
     expect(availableBeforeCreate.body).toMatchObject({
       date: reservationDate,
       tables: expect.arrayContaining([1]),
+    });
+
+    const statusesBeforeCreate = await request(server)
+      .get("/tables/statuses")
+      .set("Authorization", `Bearer ${firstToken}`)
+      .query({ date: reservationDate })
+      .expect(200);
+    expect(statusesBeforeCreate.body.tables).toHaveLength(32);
+    expect(statusesBeforeCreate.body.tables).toContainEqual({
+      number: 1,
+      status: "available",
     });
 
     const created = await request(server)
@@ -352,6 +371,26 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .query({ date: reservationDate })
       .expect(200);
     expect(availableAfterCreate.body.tables).not.toContain(1);
+
+    const firstUserStatuses = await request(server)
+      .get("/tables/statuses")
+      .set("Authorization", `Bearer ${firstToken}`)
+      .query({ date: reservationDate })
+      .expect(200);
+    expect(firstUserStatuses.body.tables).toContainEqual({
+      number: 1,
+      status: "mine",
+    });
+
+    const secondUserStatuses = await request(server)
+      .get("/tables/statuses")
+      .set("Authorization", `Bearer ${secondToken}`)
+      .query({ date: reservationDate })
+      .expect(200);
+    expect(secondUserStatuses.body.tables).toContainEqual({
+      number: 1,
+      status: "reserved",
+    });
 
     await request(server)
       .post("/reservations")
@@ -496,6 +535,16 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .query({ date: editDate })
       .expect(200);
     expect(availableAfterDelete.body.tables).toContain(3);
+
+    const statusesAfterDelete = await request(server)
+      .get("/tables/statuses")
+      .set("Authorization", `Bearer ${firstToken}`)
+      .query({ date: editDate })
+      .expect(200);
+    expect(statusesAfterDelete.body.tables).toContainEqual({
+      number: 3,
+      status: "available",
+    });
 
     await request(server)
       .post("/reservations")
