@@ -1,15 +1,14 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Home from "./pages/Home";
-import History from "./pages/History";
-
+import MyReservations from "./pages/MyReservations";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/history" element={<History />} />
+        <Route path="/my-reservations" element={<MyReservations />} />
       </Routes>
     </BrowserRouter>
   );

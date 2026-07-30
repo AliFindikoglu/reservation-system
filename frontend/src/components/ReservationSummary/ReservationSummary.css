@@ -1,26 +1,31 @@
-.reservation-card {
+.summary-card {
     position: fixed;
-    left: 260px;      /* Sidebar genişliği kadar */
+    left: 240px;
     right: 0;
     bottom: 0;
+
     height: 90px;
+
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
+
     padding: 0 36px;
-    background: white;
+
+    background: #fff;
     border-top: 1px solid #e5e7eb;
     box-shadow: 0 -6px 20px rgba(0,0,0,.08);
+
     z-index: 1000;
 }
 
-.reservation-info{
+.summary-content{
     display:flex;
     align-items:center;
     gap:16px;
 }
 
-.reservation-icon{
+.summary-icon{
     width:42px;
     height:42px;
 
@@ -28,40 +33,38 @@
     justify-content:center;
     align-items:center;
 
+    background:#fff7f0;
+    color:#b45309;
     border-radius:12px;
 
-    background:#fff7f0;
-
-    color:#b45309;
-
-    font-size:20px;
+    flex-shrink:0;
 }
 
-.reservation-info h4{
-    margin:0 0 4px;
+.summary-text{
+    display:flex;
+    flex-direction:column;
+}
 
+.summary-text h4{
+    margin:0;
     font-size:15px;
     font-weight:700;
-
     color:#222;
 }
 
-.reservation-info p{
-    margin:0;
-
-    color:#64748b;
-
+.summary-text p{
+    margin:4px 0 0;
     font-size:14px;
+    color:#64748b;
 }
 
-.reserve-button{
+.summary-button{
     padding:14px 26px;
 
     border:none;
     border-radius:12px;
 
     background:#b45309;
-
     color:white;
 
     font-size:15px;
@@ -72,13 +75,11 @@
     transition:.2s;
 }
 
-.reserve-button:hover:not(:disabled){
+.summary-button:hover:not(:disabled){
     background:#92400e;
-    transform:translateY(-2px);
 }
 
-.reserve-button:disabled{
+.summary-button:disabled{
     background:#d6d6d6;
     color:#888;
-    cursor:not-allowed;
 }

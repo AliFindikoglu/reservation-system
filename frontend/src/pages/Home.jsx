@@ -34,6 +34,8 @@ function Home() {
     try {
       const data = await getAvailableTables(selectedDate);
       setAvailableTables(data.tables);
+          console.log("API cevabı:", data);
+    console.log("tables:", data.tables);
     } catch (error) {
       console.error("Error fetching available tables:", error);
     }
