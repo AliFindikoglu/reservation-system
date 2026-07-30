@@ -40,3 +40,18 @@ if (!response.ok) {
 
   return response.json();
 }
+
+export async function getMe(){
+    const token = localStorage.getItem("token");
+    const response = await fetch (`${BASE_URL}/auth/me`, {
+        headers : {
+            Authorization : `Bearer ${token}`,
+        },
+    });
+    
+    if(!response.ok){
+        throw new Error ("Unauthorized");
+    }
+
+    return response.json();
+}

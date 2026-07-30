@@ -1,5 +1,7 @@
 ﻿import { useState, useEffect } from "react";
+
 import "../styles/Home.css";
+
 import SeatGrid from "../components/SeatGrid/SeatGrid";
 import DateSelector from "../components/DateSelector/DateSelector";
 import LoginModal from "../components/LoginModal/LoginModal";
@@ -9,61 +11,79 @@ import ReservationSummary from "../components/ReservationSummary/ReservationSumm
 import SeatLegend from "../components/SeatLegend/SeatLegend";
 import RegisterModal from "../components/RegisterModal/RegisterModal";
 
-import { login, register } from "../api/authApi";
 import { getAvailableTables } from "../api/tableApi";
 import { createReservation } from "../api/reservationsApi";
 
+import { useAuth } from "../context/AuthContext";
+
+
 function Home() {
-  const [currentUser, setCurrentUser] = useState(null);
   const [availableTables, setAvailableTables] = useState([]);
   const [selectedSeat, setSelectedSeat] = useState(null);
-
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
-
   const today = new Date().toISOString().split("T")[0];
   const [selectedDate, setSelectedDate] = useState(today);
 
-  function logout() {
-    localStorage.removeItem("token");
-    setCurrentUser(null);
-    setSelectedSeat(null);
+  const { login, register, currentUser, } = useAuth();
+
+
+//.....................................................................
+    async function handleLogin(credentials) {
+  try {
+    await login(credentials);
+    setIsLoginOpen(false);
+  } catch (error) {
+    console.error("Login error:", error);
+    throw error;
   }
+}
+
+async function handleRegister(user) {
+  try {
+    await register(user);
+    setIsRegisterOpen(false);
+  } catch (error) {
+    console.error("Register error:", error);
+    throw error;
+  }
+}
+
+
+
+
+//.....................................................................
+
 
   async function loadTables() {
     try {
       const data = await getAvailableTables(selectedDate);
       setAvailableTables(data.tables);
-          console.log("API cevabı:", data);
-    console.log("tables:", data.tables);
     } catch (error) {
       console.error("Error fetching available tables:", error);
     }
   }
 
+
   useEffect(() => {
     loadTables();
   }, [selectedDate]);
+
 
   function handleSeatClick(seatNumber) {
     if (!currentUser) {
       setIsLoginOpen(true);
       return;
     }
-
-    if (selectedSeat === seatNumber) {
-      setSelectedSeat(null);
-    } else {
-      setSelectedSeat(seatNumber);
-    }
+    setSelectedSeat(selectedSeat === seatNumber ? null : seatNumber);
   }
+
 
   async function handleReserve() {
     if (!selectedSeat) {
       alert("Lütfen bir masa seçin.");
       return;
     }
-
     try {
       await createReservation({
         tableNumber: selectedSeat,
@@ -79,6 +99,8 @@ function Home() {
       alert("Reservation failed.");
     }
   }
+  //.....................................................................
+
 
   return (
     <div className="home-page">
@@ -88,11 +110,8 @@ function Home() {
         <div className="hero">
           <div className="header-card">
             <Header
-              currentUser={currentUser}
-              onLogin={() => setIsLoginOpen(true)}
-              onRegister={() => setIsRegisterOpen(true)}
-              onLogout={logout}
-            >
+            onLogin={() => setIsLoginOpen(true)}
+            onRegister={() => setIsRegisterOpen(true)}>
               <DateSelector
                 selectedDate={selectedDate}
                 onDateChange={setSelectedDate}
@@ -119,47 +138,20 @@ function Home() {
                 setIsLoginOpen(false);
                 setIsRegisterOpen(true);
             }}
-            onLogin={async (credentials) => {
-              try {
-                const data = await login(credentials);
-
-                localStorage.setItem("token", data.accessToken);
-                setCurrentUser(data.user);
-
-                setIsLoginOpen(false);
-
-                console.log("Login Succes", data);
-              } catch (error) {
-                console.error("Login error:", error);
-                throw error;
-              }
-            }}
+            onLogin = {handleLogin}
           />
 
           <RegisterModal
-  isOpen={isRegisterOpen}
-  onClose={() => setIsRegisterOpen(false)}
-  onOpenLogin={() => {
-    setIsRegisterOpen(false);
-    setIsLoginOpen(true);
-  }}
-  onRegister={async (user) => {
-    try {
-      const data = await register(user);
-
-      localStorage.setItem("token", data.accessToken);
-      setCurrentUser(data.user);
-      setIsRegisterOpen(false);
-
-      console.log("login succesfull", data);
-    } catch (error) {
-      console.error("Register hatası:", error);
-      throw error;
-    }
-  }}
+    isOpen={isRegisterOpen}
+    onClose={() => setIsRegisterOpen(false)}
+    onOpenLogin={() => {
+        setIsRegisterOpen(false);
+        setIsLoginOpen(true);
+    }}
+    onRegister={handleRegister}
 />
         </div>
-      </div>
+    </div>
 
       <ReservationSummary
         selectedSeat={selectedSeat}
