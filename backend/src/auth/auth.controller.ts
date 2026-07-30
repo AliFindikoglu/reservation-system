@@ -32,7 +32,7 @@ export class AuthController {
 
   @Post("register")
   @ApiCreatedResponse({
-    description: "Kullanıcı oluşturulur ve JWT access token döner.",
+    description: "Creates a user and returns a JWT access token.",
     type: AuthResponseDto,
   })
   register(@Body() dto: RegisterDto) {
@@ -42,11 +42,11 @@ export class AuthController {
   @Post("login")
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({
-    description: "Geçerli bilgiler için JWT access token döner.",
+    description: "Returns a JWT access token for valid credentials.",
     type: AuthResponseDto,
   })
   @ApiUnauthorizedResponse({
-    description: "E-posta adresi veya parola hatalıdır.",
+    description: "The email address or password is incorrect.",
   })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
@@ -56,11 +56,11 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOkResponse({
-    description: "Giriş yapan kullanıcının profil bilgileri.",
+    description: "Returns the authenticated user's profile.",
     type: UserResponseDto,
   })
   @ApiUnauthorizedResponse({
-    description: "Oturum bilgisi eksik, geçersiz veya süresi dolmuştur.",
+    description: "The session is missing, invalid, or expired.",
   })
   me(@CurrentUser() user: AuthenticatedUser) {
     return this.authService.me(user.userId);
@@ -71,15 +71,15 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOkResponse({
     description:
-      "Giriş yapan kullanıcının adı ve/veya telefon numarası güncellenir.",
+      "Updates the authenticated user's full name and/or phone number.",
     type: UserResponseDto,
   })
   @ApiBadRequestResponse({
     description:
-      "Alan doğrulaması başarısız veya e-posta gibi değiştirilemeyen bir alan gönderildi.",
+      "Field validation failed or an unsupported field, such as email, was provided.",
   })
   @ApiUnauthorizedResponse({
-    description: "Oturum bilgisi eksik, geçersiz veya süresi dolmuştur.",
+    description: "The session is missing, invalid, or expired.",
   })
   updateProfile(
     @CurrentUser() user: AuthenticatedUser,

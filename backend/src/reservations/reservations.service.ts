@@ -66,7 +66,7 @@ export class ReservationsService {
 
   private async findTable(number: number) {
     const table = await this.prisma.table.findUnique({ where: { number } });
-    if (!table) throw new NotFoundException("Masa bulunamadı.");
+    if (!table) throw new NotFoundException("Table not found.");
     return table;
   }
   private async findOwned(id: string, userId: string) {
@@ -74,10 +74,10 @@ export class ReservationsService {
       where: { id },
       include: { table: true },
     });
-    if (!reservation) throw new NotFoundException("Rezervasyon bulunamadı.");
+    if (!reservation) throw new NotFoundException("Reservation not found.");
     if (reservation.userId !== userId)
       throw new ForbiddenException(
-        "Bu rezervasyon üzerinde işlem yapma yetkiniz bulunmamaktadır.",
+        "You do not have permission to modify this reservation.",
       );
     return reservation;
   }
@@ -89,10 +89,10 @@ export class ReservationsService {
       const target = error.meta?.target;
       if (Array.isArray(target) && target.includes("userId"))
         throw new ConflictException(
-          "Aynı gün için yalnızca bir rezervasyon oluşturabilirsiniz.",
+          "You can create only one reservation per day.",
         );
       throw new ConflictException(
-        "Seçtiğiniz masa bu tarihte zaten rezerve edilmiştir.",
+        "The selected table is already reserved for this date.",
       );
     }
   }

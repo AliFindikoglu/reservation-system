@@ -56,7 +56,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
 
     await request(server).get("/olmayan-adres").expect(404, {
       statusCode: 404,
-      message: "İstenen API adresi bulunamadı.",
+      message: "The requested API endpoint was not found.",
     });
 
     const invalidRegister = await request(server)
@@ -70,8 +70,48 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .expect(400);
     expect(invalidRegister.body).toEqual({
       statusCode: 400,
-      message: "Adınızı ve soyadınızı giriniz.",
+      message: "Please enter your full name.",
     });
+
+    await request(server)
+      .post("/auth/register")
+      .send({
+        fullName: "Phone Validation User",
+        email: "phone.validation@eteration.com",
+        phone: "05062134217dsad",
+        password,
+      })
+      .expect(400, {
+        statusCode: 400,
+        message: "Please enter an 11-digit phone number starting with 05.",
+      });
+
+    await request(server)
+      .post("/auth/register")
+      .send({
+        fullName: "Email Validation User",
+        email: "email.validation@example.com",
+        phone: "05061112236",
+        password,
+      })
+      .expect(400, {
+        statusCode: 400,
+        message: "Please use your company email address.",
+      });
+
+    await request(server)
+      .post("/auth/register")
+      .send({
+        fullName: "Password Validation User",
+        email: "password.validation@eteration.com",
+        phone: "05061112237",
+        password: "password",
+      })
+      .expect(400, {
+        statusCode: 400,
+        message:
+          "Please enter a password of at least 8 characters containing an uppercase letter, a lowercase letter, a number, and a symbol, with no spaces.",
+      });
 
     const firstRegister = await request(server)
       .post("/auth/register")
@@ -96,7 +136,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .expect(409, {
         statusCode: 409,
         message:
-          "Bu e-posta adresiyle kayıtlı bir kullanıcı zaten bulunmaktadır.",
+          "A user with this email address already exists.",
       });
 
     await request(server)
@@ -123,14 +163,14 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .send({ email: firstEmail, password: "yanlis-parola" })
       .expect(401, {
         statusCode: 401,
-        message: "E-posta adresinizi ve parolanızı kontrol ediniz.",
+        message: "Please check your email address and password.",
       });
     const firstToken = firstLogin.body.accessToken as string;
     const secondToken = secondLogin.body.accessToken as string;
 
     await request(server).get("/auth/me").expect(401, {
       statusCode: 401,
-      message: "Bu işlem için giriş yapınız.",
+      message: "Please sign in to perform this action.",
     });
     await request(server)
       .get("/auth/me")
@@ -154,7 +194,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .expect(400, {
         statusCode: 400,
         message:
-          "Yalnızca ad soyad ve telefon numarası alanlarını güncelleyiniz.",
+          "Please update only the full name and phone number fields.",
       });
 
     await request(server)
@@ -197,7 +237,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .expect(401, {
         statusCode: 401,
         message:
-          "Oturum süreniz dolmuştur. Lütfen yeniden giriş yapınız.",
+          "Your session has expired. Please sign in again.",
       });
 
     await request(server)
@@ -237,7 +277,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .send({ tableNumber: 1, reservationDate })
       .expect(409, {
         statusCode: 409,
-        message: "Seçtiğiniz masa bu tarihte zaten rezerve edilmiştir.",
+        message: "The selected table is already reserved for this date.",
       });
 
     await request(server)
@@ -246,7 +286,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .send({ tableNumber: 2, reservationDate })
       .expect(409, {
         statusCode: 409,
-        message: "Aynı gün için yalnızca bir rezervasyon oluşturabilirsiniz.",
+        message: "You can create only one reservation per day.",
       });
 
     await request(server)
@@ -255,7 +295,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .send({ tableNumber: 2 })
       .expect(400, {
         statusCode: 400,
-        message: "Geçerli bir rezervasyon kimliği giriniz.",
+        message: "Please enter a valid reservation ID.",
       });
 
     await request(server)
@@ -265,7 +305,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .expect(403, {
         statusCode: 403,
         message:
-          "Bu rezervasyon üzerinde işlem yapma yetkiniz bulunmamaktadır.",
+          "You do not have permission to modify this reservation.",
       });
     await request(server)
       .delete(`/reservations/${created.body.id}`)
@@ -273,7 +313,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .expect(403, {
         statusCode: 403,
         message:
-          "Bu rezervasyon üzerinde işlem yapma yetkiniz bulunmamaktadır.",
+          "You do not have permission to modify this reservation.",
       });
 
     await request(server)
@@ -281,7 +321,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .set("Authorization", `Bearer ${firstToken}`)
       .expect(404, {
         statusCode: 404,
-        message: "Rezervasyon bulunamadı.",
+        message: "Reservation not found.",
       });
 
     await request(server)

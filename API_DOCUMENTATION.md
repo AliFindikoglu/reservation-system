@@ -408,12 +408,12 @@ Hatalar:
 
 ## 8. Hata yanıtları
 
-API hata yanıtlarında `message` her zaman tek bir Türkçe metindir:
+API hata yanıtlarında `message` her zaman tek bir İngilizce metindir:
 
 ```json
 {
   "statusCode": 409,
-  "message": "Seçtiğiniz masa bu tarihte zaten rezerve edilmiştir."
+  "message": "The selected table is already reserved for this date."
 }
 ```
 
@@ -422,12 +422,12 @@ Doğrulama hatası:
 ```json
 {
   "statusCode": 400,
-  "message": "Şirket e-posta adresinizi giriniz."
+  "message": "Please use your company email address."
 }
 ```
 
 Bir istekte birden fazla geçersiz alan olsa bile yalnızca ilk doğrulama
-mesajı döndürülür. İngilizce `error` alanı hata yanıtlarında yer almaz.
+mesajı döndürülür. Ayrı bir `error` alanı hata yanıtlarında yer almaz.
 
 ### HTTP durum kodları
 

@@ -7,7 +7,7 @@ import {
 function getFirstMessage(errors: ValidationError[]): string {
   for (const error of errors) {
     if (error.constraints?.whitelistValidation) {
-      return "Yalnızca desteklenen alanları gönderiniz.";
+      return "Please provide only supported fields.";
     }
 
     const message = error.constraints
@@ -22,7 +22,7 @@ function getFirstMessage(errors: ValidationError[]): string {
     }
   }
 
-  return "Gönderilen bilgileri kontrol ediniz.";
+  return "Please check the submitted information.";
 }
 
 export function createValidationPipe(): ValidationPipe {

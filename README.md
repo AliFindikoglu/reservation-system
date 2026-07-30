@@ -134,7 +134,7 @@ Başlıca hata durumları:
 - `404`: Masa veya rezervasyon bulunamadı.
 - `409`: E-posta zaten kayıtlı, masa/tarih dolu veya kullanıcı aynı gün başka rezervasyona sahip.
 
-Hata yanıtındaki `message` alanı her zaman tek bir Türkçe metindir. Frontend
+Hata yanıtındaki `message` alanı her zaman tek bir İngilizce metindir. Frontend
 bu mesajı doğrudan kullanıcıya gösterebilir.
 
 ## Test ve kalite komutları

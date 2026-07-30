@@ -22,7 +22,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const user = await this.usersService.findById(payload.userId);
     if (!user) {
       throw new UnauthorizedException(
-        "Kullanıcı hesabınız bulunamadı. Lütfen sistem yöneticisiyle iletişime geçiniz.",
+        "Your user account could not be found. Please contact the system administrator.",
       );
     }
     return { userId: user.id, email: user.email };

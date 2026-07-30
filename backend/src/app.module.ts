@@ -12,7 +12,7 @@ import { AuthModule } from "./auth/auth.module";
       validate: (environment: Record<string, unknown>) => {
         const jwtSecret = String(environment.JWT_SECRET ?? "");
         if (jwtSecret.length < 32) {
-          throw new Error("JWT_SECRET en az 32 karakterden oluşmalıdır.");
+          throw new Error("JWT_SECRET must be at least 32 characters long.");
         }
 
         const maximumDays = Number(
@@ -20,7 +20,7 @@ import { AuthModule } from "./auth/auth.module";
         );
         if (!Number.isInteger(maximumDays) || maximumDays < 0) {
           throw new Error(
-            "MAX_RESERVATION_DAYS_AHEAD sıfır veya pozitif bir tam sayı olmalıdır.",
+            "MAX_RESERVATION_DAYS_AHEAD must be a non-negative integer.",
           );
         }
 

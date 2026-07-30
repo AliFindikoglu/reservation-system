@@ -13,10 +13,10 @@ export class UpdateProfileDto {
   @Transform(({ value }) =>
     typeof value === "string" ? value.trim() : value,
   )
-  @IsString({ message: "Adınızı ve soyadınızı giriniz." })
-  @IsNotEmpty({ message: "Adınızı ve soyadınızı giriniz." })
+  @IsString({ message: "Please enter your full name." })
+  @IsNotEmpty({ message: "Please enter your full name." })
   @Matches(/\S/, {
-    message: "Adınızı ve soyadınızı giriniz.",
+    message: "Please enter your full name.",
   })
   fullName?: string;
 
@@ -26,7 +26,7 @@ export class UpdateProfileDto {
     typeof value === "string" ? value.trim() : value,
   )
   @Matches(/^05[0-9]{9}$/, {
-    message: "05 ile başlayan 11 haneli bir telefon numarası giriniz.",
+    message: "Please enter an 11-digit phone number starting with 05.",
   })
   phone?: string;
 }

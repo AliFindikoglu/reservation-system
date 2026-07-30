@@ -4,19 +4,19 @@ import { IsInt, Matches, Max, Min } from "class-validator";
 export class CreateReservationDto {
   @ApiProperty({ example: 12, minimum: 1, maximum: 32 })
   @IsInt({
-    message: "1 ile 32 arasında geçerli bir masa numarası giriniz.",
+    message: "Please enter a valid table number between 1 and 32.",
   })
   @Min(1, {
-    message: "1 ile 32 arasında geçerli bir masa numarası giriniz.",
+    message: "Please enter a valid table number between 1 and 32.",
   })
   @Max(32, {
-    message: "1 ile 32 arasında geçerli bir masa numarası giriniz.",
+    message: "Please enter a valid table number between 1 and 32.",
   })
   tableNumber!: number;
 
   @ApiProperty({ example: "2026-08-01" })
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
-    message: "Rezervasyon tarihini YYYY-MM-DD biçiminde giriniz.",
+    message: "Please enter the reservation date in YYYY-MM-DD format.",
   })
   reservationDate!: string;
 }

@@ -38,11 +38,11 @@ export class ReservationsController {
 
   @Post()
   @ApiCreatedResponse({
-    description: "Giriş yapan kullanıcı için rezervasyon oluşturulur.",
+    description: "Creates a reservation for the authenticated user.",
     type: ReservationResponseDto,
   })
   @ApiUnauthorizedResponse({
-    description: "Oturum bilgisi eksik, geçersiz veya süresi dolmuştur.",
+    description: "The session is missing, invalid, or expired.",
   })
   create(
     @CurrentUser() user: AuthenticatedUser,
@@ -53,7 +53,7 @@ export class ReservationsController {
 
   @Get("me")
   @ApiOkResponse({
-    description: "Giriş yapan kullanıcının rezervasyonları.",
+    description: "Returns the authenticated user's reservations.",
     type: ReservationResponseDto,
     isArray: true,
   })
@@ -63,20 +63,20 @@ export class ReservationsController {
 
   @Patch(":id")
   @ApiOkResponse({
-    description: "Kullanıcının kendi rezervasyonu güncellenir.",
+    description: "Updates the authenticated user's reservation.",
     type: ReservationResponseDto,
   })
   @ApiForbiddenResponse({
-    description: "Rezervasyon başka bir kullanıcıya ait.",
+    description: "The reservation belongs to another user.",
   })
-  @ApiNotFoundResponse({ description: "Rezervasyon bulunamadı." })
+  @ApiNotFoundResponse({ description: "Reservation not found." })
   update(
     @Param(
       "id",
       new ParseUUIDPipe({
         exceptionFactory: () =>
           new BadRequestException(
-            "Geçerli bir rezervasyon kimliği giriniz.",
+            "Please enter a valid reservation ID.",
           ),
       }),
     )
@@ -90,19 +90,19 @@ export class ReservationsController {
   @Delete(":id")
   @HttpCode(204)
   @ApiNoContentResponse({
-    description: "Rezervasyon silinir ve masa tekrar kullanılabilir olur.",
+    description: "Deletes the reservation and makes the table available again.",
   })
   @ApiForbiddenResponse({
-    description: "Rezervasyon başka bir kullanıcıya ait.",
+    description: "The reservation belongs to another user.",
   })
-  @ApiNotFoundResponse({ description: "Rezervasyon bulunamadı." })
+  @ApiNotFoundResponse({ description: "Reservation not found." })
   async remove(
     @Param(
       "id",
       new ParseUUIDPipe({
         exceptionFactory: () =>
           new BadRequestException(
-            "Geçerli bir rezervasyon kimliği giriniz.",
+            "Please enter a valid reservation ID.",
           ),
       }),
     )

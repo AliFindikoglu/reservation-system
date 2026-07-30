@@ -19,10 +19,10 @@ export class PrismaService
       await this.$connect();
     } catch (error) {
       this.logger.error(
-        "Veritabanı bağlantısı kurulamadı.",
+        "Database connection failed.",
         error instanceof Error ? error.stack : String(error),
       );
-      throw new Error("Veritabanı bağlantısı kurulamadı.");
+      throw new Error("Database connection failed.");
     }
   }
 

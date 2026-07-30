@@ -27,7 +27,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
 
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
       this.logger.error(
-        "Beklenmeyen bir sunucu hatası oluştu.",
+        "An unexpected server error occurred.",
         exception instanceof Error ? exception.stack : String(exception),
       );
     }
@@ -44,7 +44,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
     request: Request,
   ): string {
     if (!(exception instanceof HttpException)) {
-      return "Beklenmeyen bir hata oluştu. Lütfen daha sonra tekrar deneyiniz.";
+      return "An unexpected error occurred. Please try again later.";
     }
 
     const exceptionResponse = exception.getResponse();
@@ -56,11 +56,11 @@ export class ApiExceptionFilter implements ExceptionFilter {
 
     if (
       status === HttpStatus.BAD_REQUEST &&
-      message === "Yalnızca desteklenen alanları gönderiniz." &&
+      message === "Please provide only supported fields." &&
       request.method === "PATCH" &&
       request.path === "/auth/me"
     ) {
-      return "Yalnızca ad soyad ve telefon numarası alanlarını güncelleyiniz.";
+      return "Please update only the full name and phone number fields.";
     }
 
     if (
@@ -68,7 +68,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
       typeof message === "string" &&
       (message.startsWith("Unexpected") || message.startsWith("Expected"))
     ) {
-      return "Geçerli bir JSON gövdesi gönderiniz.";
+      return "Please provide a valid JSON request body.";
     }
 
     if (status === HttpStatus.PAYLOAD_TOO_LARGE) {
@@ -80,7 +80,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
       typeof message === "string" &&
       message.startsWith("Cannot ")
     ) {
-      return "İstenen API adresi bulunamadı.";
+      return "The requested API endpoint was not found.";
     }
 
     if (message && !this.isDefaultFrameworkMessage(message)) {
@@ -104,20 +104,22 @@ export class ApiExceptionFilter implements ExceptionFilter {
 
   private getDefaultMessage(status: number): string {
     const messages: Record<number, string> = {
-      [HttpStatus.BAD_REQUEST]: "Gönderilen bilgileri kontrol ediniz.",
-      [HttpStatus.UNAUTHORIZED]: "Bu işlem için giriş yapınız.",
-      [HttpStatus.FORBIDDEN]: "Bu işlem için yetkiniz bulunmamaktadır.",
-      [HttpStatus.NOT_FOUND]: "İstenen kaynak bulunamadı.",
-      [HttpStatus.CONFLICT]: "İstek mevcut kayıtlarla çakışmaktadır.",
+      [HttpStatus.BAD_REQUEST]: "Please check the submitted information.",
+      [HttpStatus.UNAUTHORIZED]: "Please sign in to perform this action.",
+      [HttpStatus.FORBIDDEN]:
+        "You do not have permission to perform this action.",
+      [HttpStatus.NOT_FOUND]: "The requested resource was not found.",
+      [HttpStatus.CONFLICT]:
+        "The request conflicts with existing records.",
       [HttpStatus.PAYLOAD_TOO_LARGE]:
-        "İstek gövdesi izin verilen boyutu aşmaktadır.",
+        "The request body exceeds the allowed size.",
       [HttpStatus.INTERNAL_SERVER_ERROR]:
-        "Beklenmeyen bir hata oluştu. Lütfen daha sonra tekrar deneyiniz.",
+        "An unexpected error occurred. Please try again later.",
     };
 
     return (
       messages[status] ??
-      "İstek işlenemedi. Lütfen daha sonra tekrar deneyiniz."
+      "The request could not be processed. Please try again later."
     );
   }
 }
