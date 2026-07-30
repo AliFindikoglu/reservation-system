@@ -44,15 +44,17 @@ Backend, DTO’da tanımlanmayan alanları kabul etmez. Fazladan bir alan gönde
 - Sistemde 1–32 arasında 32 masa bulunur.
 - Kullanıcı yalnız yapılandırılmış şirket e-posta uzantısıyla kayıt olabilir.
 - E-posta adresi küçük harfe dönüştürülerek saklanır ve benzersizdir.
-- Bir kullanıcı aynı tarih için yalnız bir rezervasyona sahip olabilir.
-- Bir masa aynı tarih için yalnız bir kullanıcı tarafından rezerve edilebilir.
+- Bir kullanıcı aynı tarih için yalnız bir aktif rezervasyona sahip olabilir.
+- Bir masa aynı tarih için yalnız bir aktif kullanıcı tarafından rezerve edilebilir.
 - Rezervasyon bugün ile yapılandırılmış ileri gün sınırı arasında oluşturulabilir. Varsayılan sınır 30 gündür ve son gün dahildir.
-- Kullanıcı yalnız kendi rezervasyonlarını görüntüleyebilir, güncelleyebilir ve silebilir.
-- Rezervasyon silindiğinde masa aynı tarih için yeniden kullanılabilir.
+- Kullanıcı yalnız kendi aktif rezervasyonlarını görüntüleyebilir.
+- Bugünkü ve gelecekteki aktif rezervasyonların tarihi ve masası güncellenebilir.
+- Rezervasyonlar fiziksel olarak silinmez; `isCancelled` ve `cancelledAt` alanlarıyla geçmişte saklanır.
+- Rezervasyon iptal edildiğinde masa ve kullanıcı aynı tarih için yeniden rezervasyon yapabilir.
 - Rezervasyon sahipliği JWT’deki kullanıcı kimliğiyle belirlenir.
 - Rezervasyon kodu veya ayrı yönetim token’ı kullanılmaz.
 
-Masa/tarih ve kullanıcı/tarih benzersizlikleri veritabanı seviyesinde korunur. Eşzamanlı çakışan isteklerden yalnız ilk tamamlanan başarılı olur.
+Aktif masa/tarih ve aktif kullanıcı/tarih benzersizlikleri PostgreSQL partial unique index’leriyle korunur. Eşzamanlı çakışan isteklerden yalnız ilk tamamlanan başarılı olur.
 
 ## 4. Veri modelleri
 
@@ -338,7 +340,8 @@ Rezervasyonu olmayan kullanıcı için:
 []
 ```
 
-Sonuçlar rezervasyon tarihine göre artan sırada döner.
+Sonuçlarda yalnız aktif rezervasyonlar yer alır ve kayıtlar rezervasyon tarihine göre artan sırada döner. İptal edilmiş kayıtlar veritabanında denetim geçmişi olarak korunur.
+İptal edilmiş kayıtlar kullanıcı endpoint’ine dönmez; yetkili kişiler bunları veritabanı veya Prisma Studio üzerinden görüntüleyebilir. Bu sürümde ayrı bir admin HTTP endpoint’i bulunmaz.
 
 ### 7.3 Rezervasyon güncelleme
 
@@ -382,9 +385,11 @@ Hatalar:
 | `401` | JWT problemi |
 | `403` | Rezervasyon başka kullanıcıya ait |
 | `404` | Rezervasyon veya masa bulunamadı |
-| `409` | Yeni masa/tarih dolu veya kullanıcının yeni tarihte başka rezervasyonu var |
+| `409` | Yeni masa/tarih dolu veya kullanıcının yeni tarihte başka aktif rezervasyonu var; `Update failed.` mesajı döner |
 
-### 7.4 Rezervasyon silme
+Güncelleme tek bir veritabanı işlemiyle yapılır. Çakışma durumunda işlem geri alınır ve rezervasyonun önceki tarih ve masa bilgileri korunur.
+
+### 7.4 Rezervasyon iptali
 
 ```http
 DELETE /reservations/:id
@@ -395,16 +400,16 @@ Başarılı yanıt — `204 No Content`
 
 Yanıt gövdesi yoktur. İstemci `204` yanıtında JSON ayrıştırmaya çalışmamalıdır.
 
-Silme tamamlandığında masa aynı tarih için yeniden kullanılabilir. Rezervasyonunu silen kullanıcı da aynı gün tekrar rezervasyon oluşturabilir.
+İptal işlemi kaydı fiziksel olarak silmez. `isCancelled` alanı `true`, `cancelledAt` alanı iptal zamanı olarak güncellenir. Masa aynı tarih için yeniden kullanılabilir ve rezervasyonunu iptal eden kullanıcı aynı gün tekrar rezervasyon oluşturabilir.
 
 Hatalar:
 
 | HTTP | Açıklama |
 |---:|---|
-| `400` | Rezervasyon kimliği UUID değil |
+| `400` | Rezervasyon kimliği UUID değil, rezervasyon geçmişte veya zaten iptal edilmiş |
 | `401` | JWT problemi |
 | `403` | Rezervasyon başka kullanıcıya ait |
-| `404` | Rezervasyon bulunamadı veya daha önce silindi |
+| `404` | Rezervasyon bulunamadı |
 
 ## 8. Hata yanıtları
 

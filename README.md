@@ -8,12 +8,14 @@ Frontend entegrasyon sözleşmesi: [API_DOCUMENTATION.md](API_DOCUMENTATION.md)
 
 - Sistemde 1–32 arasında 32 masa bulunur.
 - Yalnız `COMPANY_EMAIL_DOMAIN` ile belirtilen şirket e-posta uzantısı kabul edilir.
-- Bir kullanıcı aynı gün yalnız bir masa ayırabilir.
-- Bir masa aynı gün yalnız bir kullanıcı tarafından ayrılabilir.
+- Bir kullanıcı aynı gün yalnız bir aktif masa ayırabilir.
+- Bir masa aynı gün yalnız bir aktif kullanıcı tarafından ayrılabilir.
 - Aynı anda gelen çakışan isteklerden yalnız veritabanına ilk ulaşan başarılı olur; diğeri `409 Conflict` alır.
 - Rezervasyon bugün ile `MAX_RESERVATION_DAYS_AHEAD` gün sonrası arasına yapılabilir.
-- Kullanıcı yalnız kendi rezervasyonlarını görebilir, değiştirebilir ve silebilir.
-- Rezervasyon silinince masa aynı gün için yeniden alınabilir.
+- Kullanıcı yalnız kendi aktif rezervasyonlarını görebilir.
+- Bugünkü ve gelecekteki aktif rezervasyonların tarihi ve masası değiştirilebilir.
+- Rezervasyonlar fiziksel olarak silinmez; iptal bilgisiyle geçmişte saklanır.
+- Rezervasyon iptal edilince masa aynı gün için yeniden alınabilir.
 - Rezervasyon kodu veya yönetim token’ı kullanılmaz; sahiplik JWT’deki kullanıcı kimliğiyle belirlenir.
 
 ## Kurulum
@@ -101,9 +103,9 @@ Başarılı yanıt `200` durum koduyla kayıt yanıtıyla aynı yapıdadır.
 ### Rezervasyonlar
 
 - `POST /reservations` — JWT zorunlu.
-- `GET /reservations/me` — JWT zorunlu, yalnız giriş yapan kullanıcının rezervasyonlarını döndürür.
-- `PATCH /reservations/:id` — JWT zorunlu, yalnız kullanıcının kendi rezervasyonu.
-- `DELETE /reservations/:id` — JWT zorunlu, başarıda gövdesiz `204`.
+- `GET /reservations/me` — JWT zorunlu, yalnız giriş yapan kullanıcının aktif rezervasyonlarını döndürür.
+- `PATCH /reservations/:id` — JWT zorunlu, kullanıcının aktif rezervasyonunun tarihini ve/veya masasını günceller.
+- `DELETE /reservations/:id` — JWT zorunlu, rezervasyonu soft-cancel eder ve başarıda gövdesiz `204` döndürür.
 
 Oluşturma gövdesi:
 
@@ -125,6 +127,7 @@ Oluşturma ve güncelleme yanıtı:
 ```
 
 Güncellemede `tableNumber` ve `reservationDate` alanlarından biri veya ikisi gönderilebilir.
+Güncelleme çakışırsa `409 Conflict` ve `Update failed.` mesajı döner; mevcut rezervasyon değişmeden kalır.
 
 Başlıca hata durumları:
 
