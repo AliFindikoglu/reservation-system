@@ -22,8 +22,14 @@ function Home() {
   const [selectedSeat, setSelectedSeat] = useState(null);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
-  const today = new Date().toISOString().split("T")[0];
-  const [selectedDate, setSelectedDate] = useState(today);
+  const today = new Date();
+
+const maxDate = new Date();
+maxDate.setMonth(maxDate.getMonth() + 1);
+
+const [selectedDate, setSelectedDate] = useState(
+  today.toISOString().split("T")[0]
+);
 
   const { login, register, currentUser, } = useAuth();
 
@@ -113,11 +119,13 @@ async function handleRegister(user) {
             onLogin={() => setIsLoginOpen(true)}
             onRegister={() => setIsRegisterOpen(true)}>
               <DateSelector
-                selectedDate={selectedDate}
-                onDateChange={setSelectedDate}
-                minDate={today}
-                maxDate={new Date(today).setMonth(new Date(today).getMonth() + 1)}
-              />
+  selectedDate={new Date(selectedDate)}
+  onDateChange={(date) =>
+    setSelectedDate(date.toISOString().split("T")[0])
+  }
+  minDate={today}
+  maxDate={maxDate}
+/>
             </Header>
           </div>
 

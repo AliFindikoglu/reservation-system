@@ -1,0 +1,63 @@
+.update-modal{
+    width:700px;
+    background:white;
+    border-radius:20px;
+    padding:32px;
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+}
+
+.update-modal h2{
+    margin:0;
+    font-size:24px;
+    font-weight:700;
+}
+
+.form-group{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+}
+
+.form-group label{
+    font-size:14px;
+    font-weight:600;
+    color:#475569;
+}
+
+.form-group input,
+.form-group select{
+    padding:12px 14px;
+    border:1px solid #dbe2ea;
+    border-radius:12px;
+    font-size:15px;
+}
+
+.modal-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:12px;
+    margin-top:10px;
+}
+
+.cancel-btn{
+    padding:12px 18px;
+    border:none;
+    border-radius:12px;
+    background:#eceff3;
+    cursor:pointer;
+}
+
+.save-btn{
+    padding:12px 18px;
+    border:none;
+    border-radius:12px;
+    background:#b45309;
+    color:white;
+    cursor:pointer;
+}
+
+.save-btn:hover{
+    background:#92400e;
+}
