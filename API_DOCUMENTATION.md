@@ -310,6 +310,52 @@ Hatalar:
 |---:|---|
 | `400` | Tarih geçersiz, geçmişte veya ileri gün sınırının dışında |
 
+### 6.2 Masa durumlarını listeleme
+
+```http
+GET /tables/statuses?date=2026-08-01
+Authorization: Bearer <accessToken>
+```
+
+Bu endpoint JWT ile korunur ve seçilen tarihteki 32 masanın tamamını giriş yapan kullanıcıya göre durumlarıyla döndürür.
+
+Başarılı yanıt — `200 OK`:
+
+```json
+{
+  "date": "2026-08-01",
+  "tables": [
+    {
+      "number": 1,
+      "status": "available"
+    },
+    {
+      "number": 2,
+      "status": "reserved"
+    },
+    {
+      "number": 3,
+      "status": "mine"
+    }
+  ]
+}
+```
+
+Durumlar:
+
+- `available`: Seçilen tarihte aktif rezervasyonu bulunmayan masa.
+- `reserved`: Başka bir kullanıcı tarafından aktif olarak rezerve edilmiş masa.
+- `mine`: Giriş yapan kullanıcı tarafından aktif olarak rezerve edilmiş masa.
+
+İptal edilmiş rezervasyonlar masa durumunu etkilemez. Yanıtta rezervasyon sahibi kullanıcıların kimliği veya kişisel bilgileri bulunmaz.
+
+Hatalar:
+
+| HTTP | Açıklama |
+|---:|---|
+| `400` | Tarih geçersiz, geçmişte veya ileri gün sınırının dışında |
+| `401` | JWT eksik, geçersiz veya süresi dolmuş |
+
 ## 7. Reservations API
 
 Bu bölümdeki tüm endpoint’ler Bearer JWT gerektirir.
@@ -490,7 +536,7 @@ mesajı döndürülür. Ayrı bir `error` alanı hata yanıtlarında yer almaz.
 3. Korumalı isteklere Bearer başlığını otomatik ekleyin.
 4. Uygulama açılışında `GET /auth/me` ile saklanmış oturumu doğrulayın.
 5. `401` yanıtında yerel oturumu temizleyip kullanıcıyı login akışına yönlendirin.
-6. Tarih seçildiğinde `GET /tables/available` isteğini yenileyin.
+6. Floor Plan ekranında tarih seçildiğinde JWT ile `GET /tables/statuses` isteğini yenileyin.
 7. `409` sonrasında kullanıcıya backend mesajını gösterip masa listesini yeniden alın.
 8. Kullanıcının rezervasyonlarını `GET /reservations/me` üzerinden yönetin.
 9. Silme işleminde `204` yanıt gövdesini ayrıştırmayın.

@@ -100,6 +100,7 @@ Başarılı yanıt `200` durum koduyla kayıt yanıtıyla aynı yapıdadır.
 - `PATCH /auth/me` — JWT zorunlu, kullanıcının yalnız adını ve/veya telefonunu günceller; e-posta değiştirilemez.
 - `PATCH /auth/me/password` — JWT zorunlu, mevcut şifreyi doğruladıktan sonra güçlü yeni şifreyi kaydeder ve başarı mesajı döndürür.
 - `GET /tables/available?date=YYYY-MM-DD` — `{ "date": "YYYY-MM-DD", "tables": [1, 2, 3] }` biçiminde boş masa numaralarını döndürür.
+- `GET /tables/statuses?date=YYYY-MM-DD` — JWT zorunlu, 32 masanın tamamını `available`, `reserved` veya `mine` durumuyla döndürür.
 
 ### Rezervasyonlar
 
