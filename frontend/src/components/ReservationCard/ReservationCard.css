@@ -1,6 +1,7 @@
 .reservation-card {
   width: 310px;
   min-height: 140px;
+  position: relative;
 
   background: white;
   border: 1px solid #ffd8c2;
@@ -63,13 +64,17 @@
 
 .reservation-actions {
   display: flex;
-  justify-content: space-between;
+  gap: 15px;
+  margin-top: 16px;
+  margin-left: 120px;
 }
 
 .delete-btn {
-  background: transparent;
+  background: #f3f4f6;
   color: #ef4444;
   border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
   cursor: pointer;
 }
 
@@ -78,7 +83,20 @@
   border-radius: 8px;
 
   padding: 8px 16px;
-
   background: #f3f4f6;
   cursor: pointer;
 }
+
+.reservation-card.past-card {
+  width: 310px;
+  min-height: 140px;
+  position: relative;
+  background: #8283842a;
+  border: 1px solid #ffd8c2;
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  gap: 18px;
+  transition: .2s;
+}
+

@@ -1,11 +1,20 @@
 import "./Header.css";
 
-function Header({ children, currentUser, onLogin, onRegister, onLogout }) {
+function Header({ 
+    children, 
+    currentUser, 
+    onLogin, 
+    onRegister, 
+    onLogout,
+    title = "Find your workspace",
+    subtitle = "Select a date and reserve your seat."
+}) {
+
   return (
     <header className="header">
       <div className="header-left">
-        <h1>Find your workspace</h1>
-        <p>Select a date and reserve your seat.</p>
+        <h1>{title}</h1>
+        <p>{subtitle}</p>
       </div>
 
       <div className="header-right">
