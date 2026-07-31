@@ -1,0 +1,20 @@
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+
+.input-error {
+  border: 1.5px solid #dc2626 !important;
+  background: #fef2f2;
+}
+
+.field-error {
+  min-height: 16px;
+  margin-top: 4px;
+  margin-left: 2px;
+  margin-bottom: 0;
+  color: #dc2626;
+  font-size: 12px;
+  line-height: 16px;
+}

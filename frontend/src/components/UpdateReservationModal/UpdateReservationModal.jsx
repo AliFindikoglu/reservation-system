@@ -9,6 +9,7 @@ import SeatLegend from "../SeatLegend/SeatLegend";
 import { updateReservation } from "../../api/reservationsApi";
 import { getTableStatuses } from "../../api/tableApi";
 import { getSeatLabel } from "../../utils/seatUtil";
+import toast from "react-hot-toast";
 
 function UpdateReservationModal({
   isOpen,
@@ -57,12 +58,14 @@ function UpdateReservationModal({
 
       if (onSuccess) {
         await onSuccess();
+        toast.success("Reservation updated successfully.");
+
       }
 
       onClose();
     } catch (error) {
       console.error(error);
-      alert("Reservation update failed.");
+      toast.error("Reservation update failed.");
     }
   }
 

@@ -1,69 +1,130 @@
-.office-container{
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-    gap:40px;
-    padding-bottom: 80px;
+.office-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 50px;
+  padding-bottom: 80px;
 }
 
-.office-layout{
-    display:flex;
-    gap:30px;
+.office-layout {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 30px;
 }
 
-.column{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:14px;
+/* ---------- TABLE ---------- */
+
+.table-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
 }
 
-.column h4{
-    margin:0;
-
-    font-size:17px;
-    font-weight:700;
-
-    color:#475569;
+.table-card h4 {
+  margin: 0;
+  color: #475569;
+  font-size: 16px;
 }
 
-.seat-block{
-    display:grid;
-
-    grid-template-columns:repeat(2,56px);
-    grid-template-rows:repeat(4,56px);
-
-    grid-auto-flow:column;
-    gap:22px
+.desk-wrapper {
+  padding: 12px;
+  border-radius: 18px;
 }
 
-.window-wall{
-    width:100%;
-    max-width:560px;
-    height:34px;
+.desk-surface {
+  width: 120px;
+  height: 320px;
 
-    display:flex;
-    justify-content:center;
-    align-items:center;
+  position: relative;
 
-    background:#edf7ff;
+  border-radius: 18px;
 
-    border:2px solid #c9e3f8;
-    border-radius:18px;
+  background: #d7d7d7;
 
-    color:#4b8fcb;
-    font-size:12px;
-    font-weight:600;
-    letter-spacing:4px;
+  border: 2px solid #ffffff;
+
+  display: flex;
+  justify-content: space-between;
+
+  padding: 16px 10px;
+
+  box-sizing: border-box;
 }
 
-.window-wall span{
-    
-    color:#4b8fcb;
+/* dikey çizgi */
 
-    font-size:11px;
-    font-weight:600;
+.desk-surface::before {
+  content: "";
 
-    letter-spacing:3px;
+  position: absolute;
+
+  left: 50%;
+  top: 0;
+
+  width: 3px;
+  height: 100%;
+
+  background: #ffffff;
+
+  transform: translateX(-50%);
+}
+
+/* yatay bölmeler */
+
+.desk-surface::after {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0 78px,
+      #ffffff 78px 80px
+    );
+
+  pointer-events: none;
+}
+
+.seat-column {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 20px;
+  z-index: 2;
+}
+
+/* ---------- WINDOW ---------- */
+
+.window-wall {
+  width: 100%;
+  max-width: 900px;
+  height: 36px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  border-radius: 18px;
+
+  background: #edf7ff;
+
+  border: 2px solid #c9e3f8;
+}
+
+.window-wall span {
+  color: #4b8fcb;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 4px;
+}
+.left {
+  transform: translateX(-20px);
+}
+
+.right {
+  transform: translateX(20px);
 }

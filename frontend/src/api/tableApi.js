@@ -15,12 +15,16 @@ export async function getAvailableTables(date) {
 export async function getTableStatuses(date) {
   const token = localStorage.getItem("token");
 
+  const headers = {};
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
   const response = await fetch(
     `${BASE_URL}/tables/statuses?date=${date}`,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
     }
   );
 
