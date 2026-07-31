@@ -11,69 +11,94 @@ import ReservationSummary from "../components/ReservationSummary/ReservationSumm
 import SeatLegend from "../components/SeatLegend/SeatLegend";
 import RegisterModal from "../components/RegisterModal/RegisterModal";
 
-import { getTableStatuses } from "../api/tableApi";
+
+import { getTableStatuses, getAvailableTables} from "../api/tableApi";
 import { createReservation } from "../api/reservationsApi";
 
 import { useAuth } from "../context/AuthContext";
 
+import toast from "react-hot-toast";
+
 
 function Home() {
-  const [tableStatuses, setTableStatuses] = useState([]);
-  const [selectedSeat, setSelectedSeat] = useState(null);
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
-  const today = new Date();
+    const [loadingTables, setLoadingTables] = useState(true);
+    const [tableStatuses, setTableStatuses] = useState([]);
+    const [selectedSeat, setSelectedSeat] = useState(null);
+    const [isLoginOpen, setIsLoginOpen] = useState(false);
+    const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+    const today = new Date();
 
-const maxDate = new Date();
-maxDate.setMonth(maxDate.getMonth() + 1);
+    const maxDate = new Date();
+    maxDate.setMonth(maxDate.getMonth() + 1);
 
-const [selectedDate, setSelectedDate] = useState(
-  today.toISOString().split("T")[0]
-);
+    const [selectedDate, setSelectedDate] = useState(
+    today.toISOString().split("T")[0]
+    );
 
-  const { login, register, currentUser, } = useAuth();
+    const { login, register, currentUser, } = useAuth();
+
+    //.....................................................................
+       async function handleLogin(credentials) {
+            try {
+                await login(credentials);
+
+                toast.success("Welcome back!");
+
+                setIsLoginOpen(false);
+            } catch (error) {
+                console.error("Login error:", error);
+
+                toast.error("Invalid email or password.");
+
+                throw error;
+            }
+        }
+
+        async function handleRegister(user) {
+        try {
+            await register(user);
+            toast.success("Account created successfully.");
+            setIsRegisterOpen(false);
+        } catch (error) {
+            console.error(error);
+            toast.error("Registration failed.");
+            throw error;
+        }
+        }
+
 
 
 //.....................................................................
-    async function handleLogin(credentials) {
-  try {
-    await login(credentials);
-    setIsLoginOpen(false);
-  } catch (error) {
-    console.error("Login error:", error);
-    throw error;
-  }
-}
-
-async function handleRegister(user) {
-  try {
-    await register(user);
-    setIsRegisterOpen(false);
-  } catch (error) {
-    console.error("Register error:", error);
-    throw error;
-  }
-}
-
-
-
-
-//.....................................................................
-
 
 async function loadTables() {
+    setLoadingTables(true);
   try {
+    if (currentUser){
     const data = await getTableStatuses(selectedDate);
     setTableStatuses(data.tables);
+    } else{
+        const data = await getAvailableTables(selectedDate);
+        const availableTables = new Set(data.tables);
+        const tables = Array.from({ length: 32 }, (_, i) => ({
+        number: i + 1,
+        status: availableTables.has(i + 1)
+          ? "available"
+          : "reserved",
+      }));
+
+      setTableStatuses(tables);
+    }
+
   } catch (error) {
     console.error(error);
-  }
+  } finally{
+    setLoadingTables(false);
+  }   
 }
-
 
   useEffect(() => {
     loadTables();
-  }, [selectedDate]);
+  }, [selectedDate, currentUser]);
 
 
   function handleSeatClick(seatNumber) {
@@ -87,7 +112,7 @@ async function loadTables() {
 
   async function handleReserve() {
     if (!selectedSeat) {
-      alert("Lütfen bir masa seçin.");
+      toast.error("Please select a desk first.");
       return;
     }
     try {
@@ -96,13 +121,13 @@ async function loadTables() {
         reservationDate: selectedDate,
       });
 
-      alert("Reservation created successfully.");
+      toast.success("Desk reserved successfully.");
 
       await loadTables();
       setSelectedSeat(null);
     } catch (error) {
       console.error(error);
-      alert("Reservation failed.");
+      toast.error("You already have a reservation for this day. Please choose another date.");
     }
   }
 
@@ -131,15 +156,16 @@ async function loadTables() {
             </Header>
           </div>
 
+
           <SeatLegend />
 
-          <div className="seat-grid-wrapper">
-            <SeatGrid
-              tableStatuses={tableStatuses}
-              selectedSeat={selectedSeat}
-              onSeatClick={handleSeatClick}
-            />
-          </div>
+        <div className="seat-grid-wrapper">
+                <SeatGrid
+                    tableStatuses={tableStatuses}
+                    selectedSeat={selectedSeat}
+                    onSeatClick={handleSeatClick}
+                />      
+        </div>
 
           <LoginModal
             isOpen={isLoginOpen}

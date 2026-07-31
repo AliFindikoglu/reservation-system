@@ -42,7 +42,7 @@
   margin-bottom: 10px;
 }
 
-.modal p {
+.modal > p {
   text-align: center;
   color: #667085;
   font-size: 15px;

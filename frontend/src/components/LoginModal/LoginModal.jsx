@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "./LoginModal.css";
+import toast from "react-hot-toast";
 
 function LoginModal({
   isOpen,
@@ -10,6 +11,7 @@ function LoginModal({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  
 
   async function handleLogin() {
   try {

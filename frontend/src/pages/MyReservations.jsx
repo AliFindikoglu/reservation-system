@@ -9,6 +9,9 @@ import UpdateReservationModal from "../components/UpdateReservationModal/UpdateR
 import { getMyReservations, cancelReservation } from "../api/reservationsApi";
 
 import "../styles/MyReservations.css";
+import toast from "react-hot-toast";
+import Swal from "sweetalert2";
+
 
 function MyReservations() {
   const [reservations, setReservations] = useState([]);
@@ -56,17 +59,51 @@ useEffect(() => {
     );
 
     async function handleCancel(id) {
-  const confirmed = window.confirm(
-    "Are you sure you want to cancel this reservation?"
-  );
+      const result = await Swal.fire({
+      title: "Cancel reservation?",
+      text: "This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, cancel it",
+      cancelButtonText: "Keep reservation",
+      confirmButtonColor: "#ff6b00",
+      cancelButtonColor: "#94a3b8",
+      reverseButtons: true,
+      width: 380,
+      padding: "1.5rem",
+      background: "#ffffff",
+      color: "#1f2937",
+     backdrop: `
+    rgba(15,23,42,0.45)
+    backdrop-filter: blur(10px)
+  `,
+      });
 
-  if (!confirmed) return;
+  if (!result.isConfirmed) return;
 
   try {
     await cancelReservation(id);
     await loadReservations();
-  } catch (error) {
+    await Swal.fire({
+      icon: "success",
+      title: "Reservation cancelled",
+      text: "Your reservation has been successfully cancelled.",
+      timer: 1800,
+      showConfirmButton: false,
+      width: 360,
+      padding: "1.4rem",
+    });
+
+  } catch (error){
     console.error(error);
+Swal.fire({
+      icon: "error",
+      title: "Cancellation failed",
+      text: "Please try again later.",
+      width: 360,
+      padding: "1.4rem",
+      borderRadius: 18,
+    });
   }
 }
 
