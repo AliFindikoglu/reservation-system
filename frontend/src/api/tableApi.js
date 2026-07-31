@@ -11,3 +11,22 @@ export async function getAvailableTables(date) {
 
   return response.json();
 }
+
+export async function getTableStatuses(date) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(
+    `${BASE_URL}/tables/statuses?date=${date}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch table statuses.");
+  }
+
+  return response.json();
+}

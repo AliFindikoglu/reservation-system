@@ -1,8 +1,11 @@
 import "./SideBar.css";
 import { Map, CalendarDays, Settings, Building2 } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 function SideBar() {
+  const { currentUser } = useAuth();
+
   return (
     <aside className="sideBar">
       <div className="sidebar-logo">
@@ -19,24 +22,32 @@ function SideBar() {
       <nav>
         <NavLink
           to="/"
-          className={({ isActive }) => (isActive ? "sidebar-btn active" : "sidebar-btn")}
+          className={({ isActive }) =>
+            isActive ? "sidebar-btn active" : "sidebar-btn"
+          }
         >
           <Map size={18} />
           <span>Floor Plan</span>
         </NavLink>
 
-        <NavLink
-          to="/my-reservations"
-          className={({ isActive }) => (isActive ? "sidebar-btn active" : "sidebar-btn")}
-        >
-          <CalendarDays size={18} />
-          <span>My Reservations</span>
-        </NavLink>
+        {currentUser && (
+          <>
+            <NavLink
+              to="/my-reservations"
+              className={({ isActive }) =>
+                isActive ? "sidebar-btn active" : "sidebar-btn"
+              }
+            >
+              <CalendarDays size={18} />
+              <span>My Reservations</span>
+            </NavLink>
 
-        <button className="sidebar-btn">
-          <Settings size={18} />
-          <span>Settings</span>
-        </button>
+            <button className="sidebar-btn">
+              <Settings size={18} />
+              <span>Settings</span>
+            </button>
+          </>
+        )}
       </nav>
     </aside>
   );

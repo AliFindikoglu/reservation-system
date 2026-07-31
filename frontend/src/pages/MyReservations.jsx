@@ -1,43 +1,74 @@
 import { useEffect, useState } from "react";
+import { CalendarX2 } from "lucide-react";
+
 import Header from "../components/Header/Header";
 import SideBar from "../components/SideBar/SideBar";
-import { getMyReservations } from "../api/reservationsApi";
 import ReservationCard from "../components/ReservationCard/ReservationCard";
+import UpdateReservationModal from "../components/UpdateReservationModal/UpdateReservationModal";
+
+import { getMyReservations, cancelReservation } from "../api/reservationsApi";
+
 import "../styles/MyReservations.css";
 
 function MyReservations() {
   const [reservations, setReservations] = useState([]);
 
-  useEffect(() => {
-    async function loadReservations() {
-      const data = await getMyReservations();
-      setReservations(data);
-    }
+  const [isUpdateOpen, setIsUpdateOpen] = useState(false);
+  const [selectedReservation, setSelectedReservation] = useState(null);
 
-    loadReservations();
-  }, []);
+  function handleUpdate(reservation) {
+    setSelectedReservation(reservation);
+    setIsUpdateOpen(true);
+  }
+
+async function loadReservations() {
+  const data = await getMyReservations();
+  setReservations(data);
+}
+
+useEffect(() => {
+  loadReservations();
+}, []);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const upcomingReservations = reservations.filter((reservation) => {
-    const reservationDate = new Date(reservation.reservationDate);
-    reservationDate.setHours(0, 0, 0, 0);
-    return reservationDate >= today;
-  }).sort(
-    (a,b) =>
-      new Date(a.reservationDate) - new Date(b.reservationDate)
+  const upcomingReservations = reservations
+    .filter((reservation) => {
+      const reservationDate = new Date(reservation.reservationDate);
+      reservationDate.setHours(0, 0, 0, 0);
+      return reservationDate >= today;
+    })
+    .sort(
+      (a, b) =>
+        new Date(a.reservationDate) - new Date(b.reservationDate)
+    );
+
+  const pastReservations = reservations
+    .filter((reservation) => {
+      const reservationDate = new Date(reservation.reservationDate);
+      reservationDate.setHours(0, 0, 0, 0);
+      return reservationDate < today;
+    })
+    .sort(
+      (a, b) =>
+        new Date(b.reservationDate) - new Date(a.reservationDate)
+    );
+
+    async function handleCancel(id) {
+  const confirmed = window.confirm(
+    "Are you sure you want to cancel this reservation?"
   );
 
-  const pastReservations = reservations.filter((reservation) => {
-    const reservationDate = new Date(reservation.reservationDate);
-    reservationDate.setHours(0, 0, 0, 0);
-    return reservationDate < today;
-  }).sort(
-    (a,b) =>
-      new Date(b.reservationDate) - new Date(a.reservationDate)
-  );
-  
+  if (!confirmed) return;
+
+  try {
+    await cancelReservation(id);
+    await loadReservations();
+  } catch (error) {
+    console.error(error);
+  }
+}
 
   return (
     <div className="home-page">
@@ -57,12 +88,18 @@ function MyReservations() {
 
             <div className="reservation-list">
               {upcomingReservations.length === 0 ? (
-                <p>No upcoming reservations.</p>
+                <div className="empty-state">
+                  <CalendarX2 size={42} />
+                  <h3>No upcoming reservations</h3>
+                  <p>You don't have any upcoming reservations yet.</p>
+                </div>
               ) : (
                 upcomingReservations.map((reservation) => (
                   <ReservationCard
                     key={reservation.id}
                     reservation={reservation}
+                    onUpdate={handleUpdate}
+                    onCancel={handleCancel}
                   />
                 ))
               )}
@@ -74,7 +111,11 @@ function MyReservations() {
 
             <div className="reservation-list">
               {pastReservations.length === 0 ? (
-                <p>No past reservations.</p>
+                <div className="empty-state">
+                  <CalendarX2 size={42} />
+                  <h3>No past reservations</h3>
+                  <p>Your reservation history will appear here.</p>
+                </div>
               ) : (
                 pastReservations.map((reservation) => (
                   <ReservationCard
@@ -88,6 +129,16 @@ function MyReservations() {
           </section>
         </main>
       </div>
+
+      <UpdateReservationModal
+        isOpen={isUpdateOpen}
+        reservation={selectedReservation}
+        onClose={() => setIsUpdateOpen(false)}
+          onSuccess={async () => {
+            await loadReservations();
+            setIsUpdateOpen(false); 
+          }}
+      />
     </div>
   );
 }
