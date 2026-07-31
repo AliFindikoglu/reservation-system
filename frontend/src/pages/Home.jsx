@@ -64,10 +64,6 @@ async function handleRegister(user) {
 async function loadTables() {
   try {
     const data = await getTableStatuses(selectedDate);
-
-    console.log("API RESPONSE:", data);
-    console.log("TABLES:", data.tables);
-
     setTableStatuses(data.tables);
   } catch (error) {
     console.error(error);

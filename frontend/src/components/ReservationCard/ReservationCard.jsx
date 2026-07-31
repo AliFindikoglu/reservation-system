@@ -1,5 +1,6 @@
 import "./ReservationCard.css";
 import { CalendarDays, Trash2, Pencil } from "lucide-react";
+import { getSeatLabel } from "../../utils/seatUtil";
 
 function ReservationCard({
   reservation,
@@ -20,7 +21,7 @@ function ReservationCard({
     <div className={`reservation-card ${isPast ? "past-card" : ""}`}>
       <div className="table-box">
         <span>MASA</span>
-        <h2>{reservation.tableNumber}</h2>
+        <h2>{getSeatLabel(reservation.tableNumber)}</h2>
       </div>
 
       <div className="reservation-info">

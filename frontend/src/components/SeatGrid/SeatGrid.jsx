@@ -2,10 +2,13 @@
 import Seat from "../Seat/Seat";
 
 function SeatGrid({
-  tableStatuses,
+  tableStatuses = [],
+  currentSeat,
   selectedSeat,
   onSeatClick,
+  isUpdateMode = false,
 }) {
+     
   const blocks = [
     { letter: "A", seats: [1, 2, 3, 4, 5, 6, 7, 8] },
     { letter: "B", seats: [9, 10, 11, 12, 13, 14, 15, 16] },
@@ -13,16 +16,15 @@ function SeatGrid({
     { letter: "D", seats: [25, 26, 27, 28, 29, 30, 31, 32] },
   ];
 
-  console.log("tableStatuses:", tableStatuses);
   const renderSeat = (seatNumber, label) => {
     const table = tableStatuses.find(
       (table) => table.number === seatNumber
     );
 
     const isReserved = table?.status === "reserved";
-    const isMine = table?.status === "mine";
-
-    console.log(seatNumber, table, isMine, isReserved);
+    const isMine = isUpdateMode
+    ? seatNumber === currentSeat
+    : table?.status === "mine";
 
     return (
       <Seat
@@ -31,11 +33,11 @@ function SeatGrid({
         isReserved={isReserved}
         isMine={isMine}
         isSelected={selectedSeat === seatNumber}
-        onClick={() => {
-          if (!isReserved && !isMine) {
-            onSeatClick(seatNumber);
-          }
-        }}
+      onClick={() => {
+  if (!isReserved || isMine) {
+    onSeatClick(seatNumber);
+  }
+}}
       />
     );
   };

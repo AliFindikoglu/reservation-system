@@ -1,4 +1,5 @@
 import "./ReservationSummary.css";
+import { getSeatLabel } from "../../utils/seatUtil";
 
 function ReservationSummary({
   selectedSeat,
@@ -21,8 +22,7 @@ function ReservationSummary({
 
           <p>
             {selectedSeat
-              ? `Desk ${selectedSeat} selected for ${formattedDate}`
-              : "Choose a desk from the office layout."}
+            ? `Desk ${getSeatLabel(selectedSeat)} selected for ${formattedDate}`              : "Choose a desk from the office layout."}
           </p>
         </div>
       </div>

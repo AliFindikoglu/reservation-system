@@ -17,7 +17,6 @@ function MyReservations() {
   const [selectedReservation, setSelectedReservation] = useState(null);
 
   function handleUpdate(reservation) {
-    console.log("clicked", reservation);
     setSelectedReservation(reservation);
     setIsUpdateOpen(true);
   }
@@ -135,6 +134,10 @@ useEffect(() => {
         isOpen={isUpdateOpen}
         reservation={selectedReservation}
         onClose={() => setIsUpdateOpen(false)}
+          onSuccess={async () => {
+            await loadReservations();
+            setIsUpdateOpen(false); 
+          }}
       />
     </div>
   );

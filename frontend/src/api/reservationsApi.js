@@ -66,3 +66,26 @@ async function handleCancel(id){
         console.error(error);
     }
 }
+export async function updateReservation(id, reservation){
+    const token = localStorage.getItem("token");
+
+    const response = await fetch(
+        `${BASE_URL}/reservations/${id}`,
+        {
+            method : "PATCH",
+            headers:{
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(reservation),
+        }
+    );
+
+if (!response.ok) {
+  const error = await response.text();
+  console.log(error);
+
+  throw new Error(error);
+}
+    return response.json();
+}
