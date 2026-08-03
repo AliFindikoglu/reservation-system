@@ -17,6 +17,21 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
   const password = "GucluParola1!";
   const newPassword = "YeniGucluParola2!";
 
+  async function cleanupTestUsers() {
+    const users = await prisma.user.findMany({
+      where: { email: { in: [firstEmail, secondEmail] } },
+      select: { id: true },
+    });
+    const userIds = users.map((user) => user.id);
+    if (!userIds.length) return;
+    await prisma.notification.deleteMany({ where: { userId: { in: userIds } } });
+    await prisma.adminAuditLog.deleteMany({ where: { adminUserId: { in: userIds } } });
+    await prisma.reservation.deleteMany({ where: { userId: { in: userIds } } });
+    await prisma.tableAssignment.deleteMany({ where: { userId: { in: userIds } } });
+    await prisma.userRestriction.deleteMany({ where: { userId: { in: userIds } } });
+    await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+  }
+
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
@@ -28,19 +43,18 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
 
     prisma = app.get(PrismaService);
     jwtService = app.get(JwtService);
-    await prisma.user.deleteMany({
-      where: { email: { in: [firstEmail, secondEmail] } },
-    });
+    await cleanupTestUsers();
     await prisma.table.createMany({
-      data: Array.from({ length: 32 }, (_, index) => ({ number: index + 1 })),
+      data: Array.from({ length: 32 }, (_, index) => ({
+        number: index + 1,
+        code: `${String.fromCharCode(65 + Math.floor(index / 8))}${(index % 8) + 1}`,
+      })),
       skipDuplicates: true,
     });
   });
 
   afterAll(async () => {
-    await prisma.user.deleteMany({
-      where: { email: { in: [firstEmail, secondEmail] } },
-    });
+    await cleanupTestUsers();
     await app.close();
   });
 
@@ -189,6 +203,8 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
         fullName: "Birinci Kullanıcı",
         email: firstEmail,
         phone: "05061112233",
+        role: "USER",
+        isActive: true,
       });
 
     await request(server)
@@ -224,6 +240,8 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
         fullName: "Birinci Kullanıcı Güncel",
         email: firstEmail,
         phone: "05069999999",
+        role: "USER",
+        isActive: true,
       });
 
     await request(server)
@@ -234,6 +252,8 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
         fullName: "Birinci Kullanıcı Güncel",
         email: firstEmail,
         phone: "05069999999",
+        role: "USER",
+        isActive: true,
       });
 
     await request(server)
@@ -350,10 +370,9 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .query({ date: reservationDate })
       .expect(200);
     expect(statusesBeforeCreate.body.tables).toHaveLength(32);
-    expect(statusesBeforeCreate.body.tables).toContainEqual({
-      number: 1,
-      status: "available",
-    });
+    expect(statusesBeforeCreate.body.tables).toContainEqual(
+      expect.objectContaining({ number: 1, status: "available" }),
+    );
 
     const created = await request(server)
       .post("/reservations")
@@ -377,20 +396,18 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .set("Authorization", `Bearer ${firstToken}`)
       .query({ date: reservationDate })
       .expect(200);
-    expect(firstUserStatuses.body.tables).toContainEqual({
-      number: 1,
-      status: "mine",
-    });
+    expect(firstUserStatuses.body.tables).toContainEqual(
+      expect.objectContaining({ number: 1, status: "mine" }),
+    );
 
     const secondUserStatuses = await request(server)
       .get("/tables/statuses")
       .set("Authorization", `Bearer ${secondToken}`)
       .query({ date: reservationDate })
       .expect(200);
-    expect(secondUserStatuses.body.tables).toContainEqual({
-      number: 1,
-      status: "reserved",
-    });
+    expect(secondUserStatuses.body.tables).toContainEqual(
+      expect.objectContaining({ number: 1, status: "reserved" }),
+    );
 
     await request(server)
       .post("/reservations")
@@ -541,10 +558,9 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .set("Authorization", `Bearer ${firstToken}`)
       .query({ date: editDate })
       .expect(200);
-    expect(statusesAfterDelete.body.tables).toContainEqual({
-      number: 3,
-      status: "available",
-    });
+    expect(statusesAfterDelete.body.tables).toContainEqual(
+      expect.objectContaining({ number: 3, status: "available" }),
+    );
 
     await request(server)
       .post("/reservations")

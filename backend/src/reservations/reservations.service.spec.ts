@@ -13,15 +13,21 @@ describe("ReservationsService", () => {
     reservation: {
       create: jest.fn(),
       findMany: jest.fn(),
+      findFirst: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
     },
+    userRestriction: { findFirst: jest.fn() },
+    tableAssignment: { findFirst: jest.fn() },
   };
   const service = new ReservationsService(prisma as never);
   const dto = { tableNumber: 1, reservationDate: "2099-01-01" };
   beforeEach(() => {
     process.env.MAX_RESERVATION_DAYS_AHEAD = "999999";
     jest.resetAllMocks();
+    prisma.reservation.findFirst.mockResolvedValue(null);
+    prisma.userRestriction.findFirst.mockResolvedValue(null);
+    prisma.tableAssignment.findFirst.mockResolvedValue(null);
   });
 
   it("giriş yapan kullanıcı adına rezervasyon oluşturur", async () => {
@@ -95,6 +101,24 @@ describe("ReservationsService", () => {
       expect.objectContaining({
         where: { userId: "user-1", isCancelled: false },
       }),
+    );
+  });
+  it("ceza tarihindeki rezervasyon isteğini reddeder", async () => {
+    prisma.table.findUnique.mockResolvedValue({ id: 1, number: 1 });
+    prisma.userRestriction.findFirst.mockResolvedValue({ id: "restriction-1" });
+    await expect(service.create("user-1", dto)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    expect(prisma.reservation.create).not.toHaveBeenCalled();
+  });
+
+  it("kullanıcının atanmış masası olan gün başka rezervasyon oluşturmasını reddeder", async () => {
+    prisma.table.findUnique.mockResolvedValue({ id: 1, number: 1 });
+    prisma.tableAssignment.findFirst
+      .mockResolvedValueOnce({ id: "assignment-1", tableId: 2 })
+      .mockResolvedValueOnce(null);
+    await expect(service.create("user-1", dto)).rejects.toEqual(
+      new ConflictException("You already have an assigned table for this date."),
     );
   });
   it("rezervasyon kimliğini değiştirmeden tarih ve masayı günceller", async () => {
@@ -244,6 +268,8 @@ describe("ReservationsService", () => {
       data: {
         isCancelled: true,
         cancelledAt: expect.any(Date),
+        cancelledByUserId: "user-1",
+        cancellationReason: "Cancelled by the user.",
       },
     });
   });

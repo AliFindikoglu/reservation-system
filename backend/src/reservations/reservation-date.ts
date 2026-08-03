@@ -7,7 +7,7 @@ function getMaximumReservationDaysAhead(): number {
   return Number.isInteger(value) && value >= 0 ? value : 30;
 }
 
-function getTodayInBusinessTimeZone(): string {
+export function getTodayInBusinessTimeZone(): string {
   const formatter = new Intl.DateTimeFormat("en-US", {
     timeZone: process.env.BUSINESS_TIME_ZONE ?? "Europe/Istanbul",
     year: "numeric",
@@ -34,19 +34,7 @@ export function assertReservationCanBeCancelled(date: Date): void {
 }
 
 export function parseReservationDate(value: string): Date {
-  if (!DATE_PATTERN.test(value)) {
-    throw new BadRequestException(
-      "Please enter the reservation date in YYYY-MM-DD format.",
-    );
-  }
-
-  const date = new Date(`${value}T00:00:00.000Z`);
-  if (
-    Number.isNaN(date.getTime()) ||
-    date.toISOString().slice(0, 10) !== value
-  ) {
-    throw new BadRequestException("Please enter a valid reservation date.");
-  }
+  const date = parseDateOnly(value, "reservation date");
 
   const today = getTodayInBusinessTimeZone();
   if (value < today) {
@@ -64,4 +52,25 @@ export function parseReservationDate(value: string): Date {
   }
 
   return date;
+}
+
+export function parseDateOnly(value: string, fieldName = "date"): Date {
+  if (!DATE_PATTERN.test(value)) {
+    throw new BadRequestException(
+      `Please enter the ${fieldName} in YYYY-MM-DD format.`,
+    );
+  }
+
+  const date = new Date(`${value}T00:00:00.000Z`);
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.toISOString().slice(0, 10) !== value
+  ) {
+    throw new BadRequestException(`Please enter a valid ${fieldName}.`);
+  }
+  return date;
+}
+
+export function formatDateOnly(value: Date): string {
+  return value.toISOString().slice(0, 10);
 }

@@ -7,34 +7,155 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  USER
+  ADMIN
+}
+
 model Table {
-  id           Int           @id @default(autoincrement())
-  number       Int           @unique
+  id           Int                @id @default(autoincrement())
+  number       Int                @unique
+  code         String             @unique
   reservations Reservation[]
+  assignments  TableAssignment[]
+  equipments   TableEquipment[]
+}
+
+model Equipment {
+  id        String           @id @default(uuid())
+  code      String           @unique
+  name      String           @unique
+  isActive  Boolean          @default(true)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  tables    TableEquipment[]
+}
+
+model TableEquipment {
+  tableId           Int
+  equipmentId       String
+  assignedAt        DateTime  @default(now())
+  assignedByAdminId String?
+  table              Table     @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  equipment          Equipment @relation(fields: [equipmentId], references: [id], onDelete: Restrict)
+  assignedByAdmin    User?     @relation("TableEquipmentAssignedBy", fields: [assignedByAdminId], references: [id], onDelete: SetNull)
+
+  @@id([tableId, equipmentId])
+  @@index([equipmentId])
 }
 
 model Reservation {
-  id              String   @id @default(uuid())
-  reservationDate DateTime @db.Date
-  tableId         Int
-  userId          String
-  isCancelled     Boolean  @default(false)
-  cancelledAt     DateTime?
-  table           Table    @relation(fields: [tableId], references: [id], onDelete: Restrict)
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                 String    @id @default(uuid())
+  reservationDate    DateTime  @db.Date
+  tableId             Int
+  userId              String
+  createdByAdminId    String?
+  isCancelled         Boolean   @default(false)
+  cancelledAt         DateTime?
+  cancelledByUserId   String?
+  cancellationReason String?
+  table                Table     @relation(fields: [tableId], references: [id], onDelete: Restrict)
+  user                 User      @relation("UserReservations", fields: [userId], references: [id], onDelete: Restrict)
+  createdByAdmin       User?     @relation("ReservationCreatedByAdmin", fields: [createdByAdminId], references: [id], onDelete: SetNull)
+  cancelledByUser      User?     @relation("ReservationCancelledBy", fields: [cancelledByUserId], references: [id], onDelete: SetNull)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   @@index([reservationDate])
+  @@index([createdByAdminId])
+}
+
+model TableAssignment {
+  id               String    @id @default(uuid())
+  userId           String
+  tableId          Int
+  startsOn         DateTime  @db.Date
+  endsOn           DateTime? @db.Date
+  createdByAdminId String
+  revokedAt        DateTime?
+  revokedByAdminId String?
+  revocationReason String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  user             User      @relation("AssignedUser", fields: [userId], references: [id], onDelete: Restrict)
+  table            Table     @relation(fields: [tableId], references: [id], onDelete: Restrict)
+  createdByAdmin   User      @relation("AssignmentCreatedBy", fields: [createdByAdminId], references: [id], onDelete: Restrict)
+  revokedByAdmin   User?     @relation("AssignmentRevokedBy", fields: [revokedByAdminId], references: [id], onDelete: SetNull)
+
+  @@index([userId, startsOn, endsOn])
+  @@index([tableId, startsOn, endsOn])
+}
+
+model UserRestriction {
+  id               String    @id @default(uuid())
+  userId           String
+  startsOn         DateTime  @db.Date
+  endsOn           DateTime  @db.Date
+  reason           String?
+  createdByAdminId String
+  revokedAt        DateTime?
+  revokedByAdminId String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  user             User      @relation("RestrictedUser", fields: [userId], references: [id], onDelete: Restrict)
+  createdByAdmin   User      @relation("RestrictionCreatedBy", fields: [createdByAdminId], references: [id], onDelete: Restrict)
+  revokedByAdmin   User?     @relation("RestrictionRevokedBy", fields: [revokedByAdminId], references: [id], onDelete: SetNull)
+
+  @@index([userId, startsOn, endsOn])
+}
+
+model Notification {
+  id                String    @id @default(uuid())
+  userId            String
+  type              String
+  title             String
+  message           String
+  isRead            Boolean   @default(false)
+  relatedEntityType String?
+  relatedEntityId   String?
+  createdAt         DateTime  @default(now())
+  readAt            DateTime?
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, createdAt])
+}
+
+model AdminAuditLog {
+  id          String   @id @default(uuid())
+  adminUserId String
+  action      String
+  targetType  String
+  targetId    String
+  oldValue    Json?
+  newValue    Json?
+  reason      String?
+  createdAt   DateTime @default(now())
+  adminUser   User     @relation(fields: [adminUserId], references: [id], onDelete: Restrict)
+
+  @@index([adminUserId, createdAt])
+  @@index([targetType, targetId])
 }
 
 model User {
-  id           String        @id @default(uuid())
-  fullName     String
-  email        String        @unique
-  phone        String
-  passwordHash String
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  reservations Reservation[]
+  id                         String             @id @default(uuid())
+  fullName                   String
+  email                      String             @unique
+  phone                      String
+  passwordHash               String
+  role                       UserRole           @default(USER)
+  isActive                   Boolean            @default(true)
+  createdAt                  DateTime            @default(now())
+  updatedAt                  DateTime            @updatedAt
+  reservations               Reservation[]      @relation("UserReservations")
+  reservationsCreatedByAdmin Reservation[]      @relation("ReservationCreatedByAdmin")
+  reservationsCancelled      Reservation[]      @relation("ReservationCancelledBy")
+  assignments                TableAssignment[]  @relation("AssignedUser")
+  assignmentsCreated         TableAssignment[]  @relation("AssignmentCreatedBy")
+  assignmentsRevoked         TableAssignment[]  @relation("AssignmentRevokedBy")
+  restrictions               UserRestriction[]  @relation("RestrictedUser")
+  restrictionsCreated        UserRestriction[]  @relation("RestrictionCreatedBy")
+  restrictionsRevoked        UserRestriction[]  @relation("RestrictionRevokedBy")
+  equipmentAssignments       TableEquipment[]   @relation("TableEquipmentAssignedBy")
+  notifications              Notification[]
+  adminAuditLogs             AdminAuditLog[]
 }

@@ -17,6 +17,13 @@ Frontend entegrasyon sözleşmesi: [API_DOCUMENTATION.md](API_DOCUMENTATION.md)
 - Rezervasyonlar fiziksel olarak silinmez; iptal bilgisiyle geçmişte saklanır.
 - Rezervasyon iptal edilince masa aynı gün için yeniden alınabilir.
 - Rezervasyon kodu veya yönetim token’ı kullanılmaz; sahiplik JWT’deki kullanıcı kimliğiyle belirlenir.
+- Kullanıcı rolleri `USER` ve `ADMIN` olarak ayrılır; admin yetkisi ayrı hesap yerine kullanıcı rolüyle yönetilir.
+- Kullanıcılar fiziksel olarak silinmez; `isActive = false` ile pasifleştirilir ve geçmiş kayıtları korunur.
+- Ceza, rezervasyon ve masa ataması işlemlerinden önce gelir. Cezalı kullanıcı için admin dahil yeni kayıt oluşturulamaz.
+- Admin günlük rezervasyonu, tarih aralıklı masa atamasını yalnız ilgili gün için geçici olarak ezer.
+- Tarih aralıklı masa ataması normal kullanıcı rezervasyonundan önceliklidir.
+- Masalarda admin tarafından yönetilen monitör, dock station ve benzeri ekipmanlar bulunabilir.
+- Admin işlemleri audit log, kullanıcıya yönelik değişiklikler ise veritabanı bildirimleri olarak saklanır.
 
 ## Kurulum
 
@@ -101,6 +108,25 @@ Başarılı yanıt `200` durum koduyla kayıt yanıtıyla aynı yapıdadır.
 - `PATCH /auth/me/password` — JWT zorunlu, mevcut şifreyi doğruladıktan sonra güçlü yeni şifreyi kaydeder ve başarı mesajı döndürür.
 - `GET /tables/available?date=YYYY-MM-DD` — `{ "date": "YYYY-MM-DD", "tables": [1, 2, 3] }` biçiminde boş masa numaralarını döndürür.
 - `GET /tables/statuses?date=YYYY-MM-DD` — JWT zorunlu, 32 masanın tamamını `available`, `reserved` veya `mine` durumuyla döndürür.
+- `GET /tables/:id` — JWT zorunlu, masa kodunu ve ekipmanlarını döndürür.
+- `GET /equipments` — JWT zorunlu, seçilebilir aktif ekipman kataloğunu döndürür.
+- `GET /table-assignments/me` — kullanıcının aktif tarih aralıklı masa atamalarını döndürür.
+- `GET /restrictions/me` — kullanıcının aktif ve geçmiş ceza kayıtlarını döndürür.
+- `GET /notifications/me` — kullanıcının veritabanında saklanan bildirimlerini döndürür.
+
+### Admin API
+
+Admin endpoint’leri `Authorization: Bearer <accessToken>` ve `ADMIN` rolü gerektirir:
+
+- `/admin/users` — aktif/pasif kullanıcıları listeleme, rol ve durum değiştirme.
+- `/admin/reservations` — tüm rezervasyonları görme, önizleme, oluşturma, güncelleme ve soft-cancel.
+- `/admin/table-assignments` — tarih aralıklı masa atamalarını yönetme.
+- `/admin/restrictions` — kullanıcı cezalarını önizleme ve yönetme.
+- `/admin/tables/statuses` — `admin_reserved` ve `assigned` ayrımıyla ayrıntılı masa görünümü.
+- `PUT /admin/tables/:id/equipments` — masanın checkbox seçimlerinden gelen ekipman listesini değiştirme.
+- `/admin/audit-logs` — yönetici işlem geçmişini görüntüleme.
+
+Çakışmalı admin işlemlerinde önce `.../preview` endpoint’i çağrılır. Önizleme etkilenecek rezervasyonları ve atamaları döndürür; işlem ancak açık onay alanıyla gerçekleştirilir.
 
 ### Rezervasyonlar
 

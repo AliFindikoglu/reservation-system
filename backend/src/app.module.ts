@@ -4,6 +4,11 @@ import { PrismaModule } from "./prisma/prisma.module";
 import { ReservationsModule } from "./reservations/reservations.module";
 import { TablesModule } from "./tables/tables.module";
 import { AuthModule } from "./auth/auth.module";
+import { AdminModule } from "./admin/admin.module";
+import { EquipmentsModule } from "./equipments/equipments.module";
+import { NotificationsModule } from "./notifications/notifications.module";
+import { TableAssignmentsModule } from "./table-assignments/table-assignments.module";
+import { RestrictionsModule } from "./restrictions/restrictions.module";
 
 @Module({
   imports: [
@@ -38,6 +43,11 @@ import { AuthModule } from "./auth/auth.module";
     TablesModule,
     ReservationsModule,
     AuthModule,
+    AdminModule,
+    EquipmentsModule,
+    NotificationsModule,
+    TableAssignmentsModule,
+    RestrictionsModule,
   ],
 })
 export class AppModule {}

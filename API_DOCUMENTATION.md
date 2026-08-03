@@ -423,7 +423,7 @@ Rezervasyonu olmayan kullanıcı için:
 ```
 
 Sonuçlarda yalnız aktif rezervasyonlar yer alır ve kayıtlar rezervasyon tarihine göre artan sırada döner. İptal edilmiş kayıtlar veritabanında denetim geçmişi olarak korunur.
-İptal edilmiş kayıtlar kullanıcı endpoint’ine dönmez; yetkili kişiler bunları veritabanı veya Prisma Studio üzerinden görüntüleyebilir. Bu sürümde ayrı bir admin HTTP endpoint’i bulunmaz.
+İptal edilmiş kayıtlar kullanıcı endpoint’ine dönmez. Adminler geçmiş ve iptal edilmiş kayıtları `/admin/reservations` üzerinden görüntüleyebilir.
 
 ### 7.3 Rezervasyon güncelleme
 
@@ -564,11 +564,179 @@ function getErrorMessage(error: ApiError): string {
 Aşağıdaki özellikler API’nin mevcut sürümünde bulunmaz:
 
 - E-posta değiştirme
-- Parola değiştirme veya sıfırlama
+- Parola sıfırlama
 - Refresh token
 - Server-side logout veya token iptali
-- Yönetici paneli
 - Rezervasyon kodu
-- Başka kullanıcıların rezervasyonlarını listeleme
+
+## 12. Admin ve masa yönetimi API’si
+
+Bu bölümdeki bütün endpoint’ler Bearer JWT ve `ADMIN` rolü gerektirir. Normal kullanıcı geçerli JWT ile istek gönderse bile `403 Forbidden` alır.
+
+### 12.1 Kullanıcılar
+
+```http
+GET /admin/users?includeInactive=true
+PATCH /admin/users/:id/status
+PATCH /admin/users/:id/role
+```
+
+Durum güncelleme gövdesi:
+
+```json
+{ "isActive": false }
+```
+
+Rol güncelleme gövdesi:
+
+```json
+{ "role": "ADMIN" }
+```
+
+Pasifleştirilen kullanıcı giriş yapamaz; mevcut JWT’si de bir sonraki istekte reddedilir. Gelecekteki rezervasyonları soft-cancel, aktif masa atamaları revoke edilir. Son aktif admin pasifleştirilemez veya `USER` rolüne indirilemez.
+
+### 12.2 Admin rezervasyonları
+
+```http
+GET    /admin/reservations?includeCancelled=true
+POST   /admin/reservations/preview
+POST   /admin/reservations
+POST   /admin/reservations/:id/preview-update
+PATCH  /admin/reservations/:id
+DELETE /admin/reservations/:id
+```
+
+Oluşturma ve önizleme gövdesi:
+
+```json
+{
+  "userId": "<uuid>",
+  "tableNumber": 12,
+  "reservationDate": "2026-08-10",
+  "confirmOverride": true,
+  "reason": "Operational requirement",
+  "replacementTableNumber": 15
+}
+```
+
+`replacementTableNumber` isteğe bağlıdır ve yerinden edilen kullanıcıya aynı transaction içerisinde yeni masa verilmesini sağlar. Aynı aktif rezervasyon zaten varsa `409 Conflict` ve `This reservation already exists.` mesajı döner.
+
+Admin günlük rezervasyonu, mevcut `TableAssignment` kaydını silmez; yalnız ilgili tarih için ondan daha yüksek önceliklidir. Günlük kayıt iptal edilirse atama tekrar geçerli olur.
+
+### 12.3 Tarih aralıklı masa atamaları
+
+```http
+GET    /admin/table-assignments?includeRevoked=true
+POST   /admin/table-assignments/preview
+POST   /admin/table-assignments
+PATCH  /admin/table-assignments/:id/end-date
+DELETE /admin/table-assignments/:id
+```
+
+```json
+{
+  "userId": "<uuid>",
+  "tableNumber": 12,
+  "startsOn": "2026-08-10",
+  "endsOn": null,
+  "confirmOverride": true,
+  "reason": "Team assignment"
+}
+```
+
+`endsOn: null` süresiz atama anlamına gelir. Başlangıç tarihi sonradan değiştirilemez; normal bitiş tarihi güncellenebilir. Erken kaldırma `revokedAt` ile tutulur. Aynı atama yeniden gönderilirse `409 Conflict` ve `This table assignment already exists.` mesajı döner.
+
+PostgreSQL exclusion constraint’leri aynı kullanıcı veya masa için çakışan aktif tarih aralıklarının eşzamanlı oluşturulmasını engeller.
+
+### 12.4 Kullanıcı cezaları
+
+```http
+GET    /admin/restrictions?includeRevoked=true
+POST   /admin/restrictions/preview
+POST   /admin/restrictions
+PATCH  /admin/restrictions/:id
+DELETE /admin/restrictions/:id
+```
+
+```json
+{
+  "userId": "<uuid>",
+  "startsOn": "2026-08-10",
+  "endsOn": "2026-08-20",
+  "reason": "Policy violation",
+  "confirmImpact": true
+}
+```
+
+Ceza aralığındaki bütün rezervasyonlar, admin tarafından oluşturulmuş olsalar da soft-cancel edilir. Çakışan masa atamaları tamamen revoke edilir ve ceza bitiminde otomatik geri gelmez. Ceza kaldırılmadan admin de ilgili kullanıcı için rezervasyon veya atama oluşturamaz.
+
+### 12.5 Ekipmanlar ve masa detayları
+
+Aktif ekipman kataloğu:
+
+```http
+GET /equipments
+```
+
+Masa detayları:
+
+```http
+GET /tables/:id
+```
+
+```json
+{
+  "id": 1,
+  "number": 1,
+  "code": "A1",
+  "equipments": [
+    { "id": "<uuid>", "code": "MONITOR", "name": "Monitor" },
+    { "id": "<uuid>", "code": "DOCK_STATION", "name": "Dock Station" }
+  ]
+}
+```
+
+Admin checkbox seçimlerinin tamamını şu endpoint’e gönderir:
+
+```http
+PUT /admin/tables/:id/equipments
+```
+
+```json
+{
+  "equipmentIds": ["<monitor-uuid>", "<dock-station-uuid>"]
+}
+```
+
+Gönderilen dizi masadaki ekipmanların yeni ve eksiksiz hâlidir. Boş dizi bütün ekipmanları kaldırır.
+
+### 12.6 Masa durumları
+
+Normal kullanıcı `/tables/statuses` yanıtında yalnız `available`, `reserved` ve `mine` değerlerini görür. Admin:
+
+```http
+GET /admin/tables/statuses?date=2026-08-10
+```
+
+üzerinden `available`, `reserved`, `admin_reserved` ve `assigned` durumlarını; rezervasyon/atama kimliğini ve kullanıcı özetini görebilir. Admin tarih sorgusu normal kullanıcının 30 günlük sınırına tabi değildir.
+
+### 12.7 Bildirimler ve audit log
+
+```http
+GET   /notifications/me
+PATCH /notifications/:id/read
+GET   /admin/audit-logs
+```
+
+Bildirimler veritabanında saklanır. Kullanıcıya işlemin bir admin tarafından yapıldığı bildirilir ancak adminin adı gösterilmez. Admin rolü, kullanıcı durumu, rezervasyon, atama, ceza ve masa ekipmanı değişiklikleri audit log’a yazılır.
+
+### 12.8 Öncelik sırası
+
+Önce kullanıcının aktifliği ve ilgili tarihte cezasının bulunup bulunmadığı kontrol edilir. Masa doluluk sırası:
+
+1. Admin günlük rezervasyonu
+2. Aktif tarih aralıklı `TableAssignment`
+3. Normal kullanıcı rezervasyonu
+4. Boş masa
 
 İstemciler bu özellikler için endpoint çağrısı yapmamalıdır.
