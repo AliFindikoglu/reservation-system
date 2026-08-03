@@ -77,7 +77,7 @@ function UpdateReservationModal({
   if (!isOpen) return null;
 
 return (
-  <div className="modal-overlay">
+  <div className="modal-overlay" onClick={onClose}>
     <div className="update-modal">
 
       <h2>Update Reservation</h2>

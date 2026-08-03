@@ -1,5 +1,7 @@
 ﻿import "./SeatGrid.css";
 import Seat from "../Seat/Seat";
+import { Mars, Venus, Coffee } from "lucide-react";
+
 
 function SeatGrid({
   tableStatuses = [],
@@ -16,10 +18,9 @@ function SeatGrid({
   ];
 
   const renderSeat = (seatNumber, label) => {
-    const table = tableStatuses.find((table) => table.number === seatNumber);
+    const table = tableStatuses.find((t) => t.number === seatNumber);
 
     const isReserved = table?.status === "reserved";
-
     const isMine = isUpdateMode
       ? seatNumber === currentSeat
       : table?.status === "mine";
@@ -45,44 +46,102 @@ function SeatGrid({
       <h4>{block.letter}</h4>
 
       <div className="desk-wrapper">
-
         <div className="desk-surface">
-
+          {/* Sol Koltuk Sütunu */}
           <div className="seat-column left">
             {block.seats.slice(0, 4).map((seat, i) =>
               renderSeat(seat, `${block.letter}${i + 1}`)
             )}
           </div>
 
+          {/* Sağ Koltuk Sütunu */}
           <div className="seat-column right">
             {block.seats.slice(4).map((seat, i) =>
               renderSeat(seat, `${block.letter}${i + 5}`)
             )}
           </div>
-
         </div>
-
       </div>
     </div>
   );
 
   return (
     <div className="office-container">
-      <div className="office-layout">
+      {/* ÜST ALAN */}
+      <div className="office-top">
+        {/* WC Alanı */}
+        <div className="wc-area">
+          <div className="room" title="Men WC">
+            <Mars size={18} strokeWidth={2.5} className="wc-icon male" />
+          </div>
+          <div className="room" title="Women WC">
+            <Venus size={18} strokeWidth={2.5} className="wc-icon female" />
+          </div>
+          
 
-        {renderDesk(blocks[0])}
+        </div>
 
-        {renderDesk(blocks[1])}
+        {/* Ana Koridor */}
+        <div className="hallway">HALLWAY</div>
 
-        {renderDesk(blocks[2])}
+        {/* Küçültülmüş Mutfak */}
+        <div className="kitchen" title="Kitchen">
+          <Coffee size={18} strokeWidth={2.5} />
+        </div>
 
-        {renderDesk(blocks[3])}
+        {/* İç İçe Ofis Kompleksi */}
+        <div className="nested-office-suite">
+          <div className="outer-office">Office-4</div>
+          <div className="inner-office">Office-5</div>
+        </div>
 
+        {/* Depo */}
+        <div className="storage"></div>
       </div>
 
-      <div className="window-wall">
-        <span>WINDOW</span>
+      {/* ORTA ALAN */}
+      <div className="office-middle">
+        {}
+        <div className="entrance">ENTRANCE</div>
+
+        {/* Masalar ve Bar Lounge Alanı */}
+        <div className="desk-layout">
+          {renderDesk(blocks[0])}
+          {renderDesk(blocks[1])}
+
+          {/* Bar Masalı Lounge Alanı */}
+          <div className="lounge">
+            <span className="lounge-title">LOUNGE</span>
+
+            <div className="bar-area">
+              <div className="bar-table">
+                <div className="bar-stools left">
+                  <span className="stool"></span>
+                  <span className="stool"></span>
+                  <span className="stool"></span>
+                </div>
+                <div className="bar-stools right">
+                  <span className="stool"></span>
+                  <span className="stool"></span>
+                  <span className="stool"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {renderDesk(blocks[2])}
+          {renderDesk(blocks[3])}
+        </div>
+
+        {/* Sağ Ofis Bölmeleri */}
+        <div className="right-offices">
+          <div className="office-2">Office-2</div>
+          <div className="office-1">Office-1</div>
+        </div>
       </div>
+
+      {/* ALT PENCERE DUVARI */}
+      <div className="window-wall">WİNDOWS</div>
     </div>
   );
 }

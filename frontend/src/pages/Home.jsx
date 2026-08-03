@@ -11,7 +11,6 @@ import ReservationSummary from "../components/ReservationSummary/ReservationSumm
 import SeatLegend from "../components/SeatLegend/SeatLegend";
 import RegisterModal from "../components/RegisterModal/RegisterModal";
 
-
 import { getTableStatuses, getAvailableTables} from "../api/tableApi";
 import { createReservation } from "../api/reservationsApi";
 
@@ -159,13 +158,12 @@ async function loadTables() {
 
           <SeatLegend />
 
-        <div className="seat-grid-wrapper">
                 <SeatGrid
                     tableStatuses={tableStatuses}
                     selectedSeat={selectedSeat}
                     onSeatClick={handleSeatClick}
                 />      
-        </div>
+
 
           <LoginModal
             isOpen={isLoginOpen}

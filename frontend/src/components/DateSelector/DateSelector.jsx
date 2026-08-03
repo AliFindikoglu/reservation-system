@@ -18,7 +18,7 @@ function DateSelector({
         onChange={onDateChange}
         minDate={minDate}
         maxDate={maxDate}
-        dateFormat="d MMMM yyyy"
+        dateFormat="d MMM yyyy"
         onKeyDown={(e) => e.preventDefault()}
       />
     </div>
