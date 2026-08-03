@@ -14,18 +14,18 @@
 }
 
 .available {
-  background: #777978;
+  background: #0ae90a;
 }
 
 .available:hover {
-  background: #5a5a5a;
+  background: #02b302;
 }
 .reserved {
-  background: #ec2b2b;
+  background: #908e8e;
   cursor: not-allowed;
 }
 .reserved:hover {
-  background: #bb0808;
+  background: #5a5959;
 }
 .seat:hover {
   transform: scale(1.05);
