@@ -1,5 +1,6 @@
 import "./Header.css";
 import { useAuth } from "../../context/AuthContext";
+import NotificationBell from "../NotificationBell/NotificationBell";
 
 function Header({
   children,
@@ -36,6 +37,7 @@ function Header({
           </div>
         ) : (
           <div className="user-info">
+            <NotificationBell />
             <button onClick={logout}>Logout</button>
           </div>
           

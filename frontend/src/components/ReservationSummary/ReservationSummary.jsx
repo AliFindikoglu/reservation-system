@@ -7,6 +7,7 @@ function ReservationSummary({
   onReserve,
   disabled = false,
   disabledMessage,
+  equipments = [],
 }) {
   const formattedDate = new Date(selectedDate).toLocaleDateString("en-GB", {
     weekday: "long",
@@ -28,6 +29,11 @@ function ReservationSummary({
             : selectedSeat
             ? `Desk ${getSeatLabel(selectedSeat)} selected for ${formattedDate}`              : "Choose a desk from the office layout."}
           </p>
+          {selectedSeat && equipments.length > 0 && (
+            <div className="summary-equipments" aria-label="Desk equipment">
+              {equipments.map((equipment) => <span key={equipment.id}>{equipment.name}</span>)}
+            </div>
+          )}
         </div>
       </div>
 

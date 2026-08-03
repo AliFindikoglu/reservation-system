@@ -124,6 +124,7 @@ Admin endpoint’leri `Authorization: Bearer <accessToken>` ve `ADMIN` rolü ger
 - `/admin/restrictions` — kullanıcı cezalarını önizleme ve yönetme.
 - `/admin/tables/statuses` — `admin_reserved` ve `assigned` ayrımıyla ayrıntılı masa görünümü.
 - `PUT /admin/tables/:id/equipments` — masanın checkbox seçimlerinden gelen ekipman listesini değiştirme.
+- `POST /admin/equipments` — yeni ekipman türü oluşturma; tek ve çift monitör aynı masaya birlikte atanamaz.
 - `/admin/audit-logs` — yönetici işlem geçmişini görüntüleme.
 
 Çakışmalı admin işlemlerinde önce `.../preview` endpoint’i çağrılır. Önizleme etkilenecek rezervasyonları ve atamaları döndürür; işlem ancak açık onay alanıyla gerçekleştirilir.

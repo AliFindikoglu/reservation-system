@@ -678,6 +678,23 @@ Aktif ekipman kataloğu:
 GET /equipments
 ```
 
+Admin yeni bir ekipman türü oluşturabilir:
+
+```http
+POST /admin/equipments
+Authorization: Bearer <admin-access-token>
+Content-Type: application/json
+```
+
+```json
+{
+  "name": "Standing Desk Converter",
+  "code": "STANDING_DESK_CONVERTER"
+}
+```
+
+`name` ve `code` benzersizdir. `code` yalnızca büyük harf, rakam ve alt çizgi içerebilir. `MONITOR` ile `DUAL_MONITOR` aynı masaya birlikte atanamaz.
+
 Masa detayları:
 
 ```http

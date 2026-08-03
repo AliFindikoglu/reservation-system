@@ -39,6 +39,7 @@ import {
   UpdateAssignmentEndDateDto,
 } from "./dto/table-assignment.dto";
 import { UpdateTableEquipmentsDto } from "./dto/update-table-equipments.dto";
+import { CreateEquipmentDto } from "./dto/create-equipment.dto";
 import { AvailableTablesQueryDto } from "../tables/dto/available-tables-query.dto";
 import { TablesService } from "../tables/tables.service";
 
@@ -208,6 +209,14 @@ export class AdminController {
   @Get("tables/statuses")
   findTableStatuses(@Query() query: AvailableTablesQueryDto) {
     return this.tablesService.findAdminStatuses(query.date);
+  }
+
+  @Post("equipments")
+  createEquipment(
+    @CurrentUser() admin: AuthenticatedUser,
+    @Body() dto: CreateEquipmentDto,
+  ) {
+    return this.adminService.createEquipment(admin.userId, dto);
   }
 
   @Get("audit-logs")

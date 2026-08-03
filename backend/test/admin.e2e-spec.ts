@@ -16,6 +16,7 @@ describe("Admin reservation domain (e2e)", () => {
     "assigned.e2e@eteration.com",
     "other.e2e@eteration.com",
   ];
+  const testEquipment = { name: "E2E Foot Rest", code: "E2E_FOOT_REST" };
 
   const dateFromNow = (days: number) => {
     const date = new Date();
@@ -24,6 +25,7 @@ describe("Admin reservation domain (e2e)", () => {
   };
 
   async function cleanup() {
+    await prisma.equipment.deleteMany({ where: { code: testEquipment.code } });
     const users = await prisma.user.findMany({
       where: { email: { in: emails } },
       select: { id: true },
@@ -94,11 +96,55 @@ describe("Admin reservation domain (e2e)", () => {
       .get("/equipments")
       .set("Authorization", `Bearer ${assignedToken}`)
       .expect(200);
-    expect(equipmentList.body.equipments).toHaveLength(10);
+    expect(equipmentList.body.equipments.length).toBeGreaterThanOrEqual(10);
+    expect(equipmentList.body.equipments).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "MONITOR" }),
+        expect.objectContaining({ code: "DUAL_MONITOR" }),
+      ]),
+    );
+
+    await request(server)
+      .post("/admin/equipments")
+      .set("Authorization", `Bearer ${assignedToken}`)
+      .send(testEquipment)
+      .expect(403);
+
+    await request(server)
+      .post("/admin/equipments")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send(testEquipment)
+      .expect(201)
+      .expect((response) => {
+        expect(response.body.code).toBe(testEquipment.code);
+      });
+
+    await request(server)
+      .post("/admin/equipments")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send(testEquipment)
+      .expect(409, {
+        statusCode: 409,
+        message: "An equipment type with this name or code already exists.",
+      });
+
+    const monitorIds = equipmentList.body.equipments
+      .filter((equipment: { code: string }) => ["MONITOR", "DUAL_MONITOR"].includes(equipment.code))
+      .map((equipment: { id: string }) => equipment.id);
     const selectedEquipmentIds = equipmentList.body.equipments
       .slice(0, 2)
       .map((equipment: { id: string }) => equipment.id);
     const table = await prisma.table.findUniqueOrThrow({ where: { number: 10 } });
+
+    await request(server)
+      .put(`/admin/tables/${table.id}/equipments`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ equipmentIds: monitorIds })
+      .expect(400, {
+        statusCode: 400,
+        message: "Please select either Monitor or Dual Monitor, not both.",
+      });
+
     await request(server)
       .put(`/admin/tables/${table.id}/equipments`)
       .set("Authorization", `Bearer ${adminToken}`)

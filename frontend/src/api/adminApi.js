@@ -87,6 +87,7 @@ export const adminApi = {
     request(`/admin/tables/statuses?date=${encodeURIComponent(date)}`),
   getTable: (id) => request(`/tables/${id}`),
   getEquipments: () => request("/equipments"),
+  createEquipment: (payload) => request("/admin/equipments", json("POST", payload)),
   updateTableEquipments: (id, equipmentIds) =>
     request(`/admin/tables/${id}/equipments`, json("PUT", { equipmentIds })),
 
