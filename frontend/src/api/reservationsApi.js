@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:3000";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
 
 export async function createReservation(reservation) {
   const token = localStorage.getItem("token");
@@ -13,7 +13,12 @@ export async function createReservation(reservation) {
   });
 
   if (!response.ok) {
-    throw new Error("Reservation creation failed");
+    const data = await response.json().catch(() => null);
+    const rawMessage = data?.message;
+    const message = Array.isArray(rawMessage)
+      ? rawMessage[0]
+      : rawMessage || "Reservation creation failed.";
+    throw new Error(message);
   }
 
   return response.json();
@@ -55,17 +60,6 @@ export async function cancelReservation(id) {
   }
 }
 
-async function handleCancel(id){
-    try{
-        await cancelReservation(id);
-
-        const data = await getMyReservations();
-        setReservations(data)
-    }
-    catch (error){
-        console.error(error);
-    }
-}
 export async function updateReservation(id, reservation){
     const token = localStorage.getItem("token");
 

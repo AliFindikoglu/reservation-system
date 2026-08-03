@@ -6,6 +6,7 @@ function Seat({
   isMine,
   isSelected,
   onClick,
+  disabled = false,
 }) {
   let seatClass = "available";
 
@@ -21,6 +22,7 @@ function Seat({
     <button
       className={`seat ${seatClass}`}
       onClick={onClick}
+      disabled={disabled}
     >
       {number}
     </button>

@@ -43,3 +43,25 @@
     justify-content: center;
     box-shadow: 0 8px 24px rgba(0,0,0,.06);
 }
+
+.restriction-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    flex-direction: column;
+    padding: 16px 20px;
+    border: 1px solid #f2b8b8;
+    border-radius: 16px;
+    background: #fff3f3;
+    color: #8f2929;
+    box-shadow: 0 6px 20px rgba(143, 41, 41, .06);
+}
+
+.restriction-banner strong {
+    font-size: 15px;
+}
+
+.restriction-banner span {
+    font-size: 13px;
+    line-height: 1.5;
+}

@@ -9,6 +9,7 @@ const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
+  const [loadingUser, setLoadingUser] = useState(true);
 
   async function login(credentials) {
     const data = await loginApi(credentials);
@@ -36,7 +37,10 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     async function loadUser() {
       const token = localStorage.getItem("token");
-      if (!token) return;
+      if (!token) {
+        setLoadingUser(false);
+        return;
+      }
 
       try {
         const user = await getMe();
@@ -45,6 +49,8 @@ export function AuthProvider({ children }) {
       } catch (error) {
         console.error(error);
         localStorage.removeItem("token");
+      } finally {
+        setLoadingUser(false);
       }
     }
 
@@ -55,6 +61,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider
       value={{
         currentUser,
+        loadingUser,
         login,
         register,
         logout,

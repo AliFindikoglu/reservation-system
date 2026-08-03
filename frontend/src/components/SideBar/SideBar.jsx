@@ -1,5 +1,5 @@
 import "./SideBar.css";
-import { Map, CalendarDays, Settings, Building2 } from "lucide-react";
+import { Map, CalendarDays, Settings, Building2, ShieldCheck } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
@@ -46,6 +46,18 @@ function SideBar() {
               <Settings size={18} />
               <span>Settings</span>
             </button>
+
+            {currentUser.role === "ADMIN" && (
+              <NavLink
+                to="/admin"
+                className={({ isActive }) =>
+                  isActive ? "sidebar-btn active" : "sidebar-btn"
+                }
+              >
+                <ShieldCheck size={18} />
+                <span>Admin Panel</span>
+              </NavLink>
+            )}
           </>
         )}
       </nav>

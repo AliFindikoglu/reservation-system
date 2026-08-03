@@ -5,6 +5,8 @@ function ReservationSummary({
   selectedSeat,
   selectedDate,
   onReserve,
+  disabled = false,
+  disabledMessage,
 }) {
   const formattedDate = new Date(selectedDate).toLocaleDateString("en-GB", {
     weekday: "long",
@@ -21,7 +23,9 @@ function ReservationSummary({
           <h4>Reservation Summary</h4>
 
           <p>
-            {selectedSeat
+            {disabled && disabledMessage
+            ? disabledMessage
+            : selectedSeat
             ? `Desk ${getSeatLabel(selectedSeat)} selected for ${formattedDate}`              : "Choose a desk from the office layout."}
           </p>
         </div>
@@ -29,7 +33,7 @@ function ReservationSummary({
 
       <button
         className="summary-button"
-        disabled={!selectedSeat}
+        disabled={!selectedSeat || disabled}
         onClick={onReserve}
       >
         Book Selected Seat →

@@ -13,6 +13,7 @@ import RegisterModal from "../components/RegisterModal/RegisterModal";
 
 import { getTableStatuses, getAvailableTables} from "../api/tableApi";
 import { createReservation } from "../api/reservationsApi";
+import { getMyRestrictions } from "../api/restrictionsApi";
 
 import { useAuth } from "../context/AuthContext";
 
@@ -20,11 +21,11 @@ import toast from "react-hot-toast";
 
 
 function Home() {
-    const [loadingTables, setLoadingTables] = useState(true);
     const [tableStatuses, setTableStatuses] = useState([]);
     const [selectedSeat, setSelectedSeat] = useState(null);
     const [isLoginOpen, setIsLoginOpen] = useState(false);
     const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+    const [activeRestriction, setActiveRestriction] = useState(null);
     const today = new Date();
 
     const maxDate = new Date();
@@ -70,12 +71,24 @@ function Home() {
 //.....................................................................
 
 async function loadTables() {
-    setLoadingTables(true);
   try {
     if (currentUser){
-    const data = await getTableStatuses(selectedDate);
-    setTableStatuses(data.tables);
+    const [tableData, restrictions] = await Promise.all([
+      getTableStatuses(selectedDate),
+      getMyRestrictions(),
+    ]);
+    const restriction = restrictions.find((item) => {
+      if (item.revokedAt) return false;
+      const startsOn = item.startsOn.slice(0, 10);
+      const endsOn = item.endsOn.slice(0, 10);
+      return startsOn <= selectedDate && selectedDate <= endsOn;
+    });
+
+    setTableStatuses(tableData.tables);
+    setActiveRestriction(restriction ?? null);
+    if (restriction) setSelectedSeat(null);
     } else{
+        setActiveRestriction(null);
         const data = await getAvailableTables(selectedDate);
         const availableTables = new Set(data.tables);
         const tables = Array.from({ length: 32 }, (_, i) => ({
@@ -90,19 +103,31 @@ async function loadTables() {
 
   } catch (error) {
     console.error(error);
-  } finally{
-    setLoadingTables(false);
-  }   
+  }
 }
 
   useEffect(() => {
-    loadTables();
+    const timeoutId = setTimeout(() => {
+      void loadTables();
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
+    // loadTables depends on the same two values and is intentionally scoped to this page.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, currentUser]);
 
 
   function handleSeatClick(seatNumber) {
     if (!currentUser) {
       setIsLoginOpen(true);
+      return;
+    }
+    if (activeRestriction) {
+      toast.error(
+        activeRestriction.reason
+          ? `You cannot make reservations during this period. Reason: ${activeRestriction.reason}`
+          : "You cannot make reservations during this restricted period.",
+      );
       return;
     }
     setSelectedSeat(selectedSeat === seatNumber ? null : seatNumber);
@@ -126,7 +151,7 @@ async function loadTables() {
       setSelectedSeat(null);
     } catch (error) {
       console.error(error);
-      toast.error("You already have a reservation for this day. Please choose another date.");
+      toast.error(error.message || "Reservation could not be created.");
     }
   }
 
@@ -158,10 +183,21 @@ async function loadTables() {
 
           <SeatLegend />
 
+          {activeRestriction && (
+            <div className="restriction-banner" role="alert">
+              <strong>Reservation access restricted</strong>
+              <span>
+                You cannot select or reserve a desk for this date.
+                {activeRestriction.reason && ` Reason: ${activeRestriction.reason}`}
+              </span>
+            </div>
+          )}
+
                 <SeatGrid
                     tableStatuses={tableStatuses}
                     selectedSeat={selectedSeat}
                     onSeatClick={handleSeatClick}
+                    interactionDisabled={Boolean(activeRestriction)}
                 />      
 
 
@@ -191,6 +227,8 @@ async function loadTables() {
         selectedSeat={selectedSeat}
         selectedDate={selectedDate}
         onReserve={handleReserve}
+        disabled={Boolean(activeRestriction)}
+        disabledMessage="Reservations are disabled for this restricted date."
       />
     </div>
   );
