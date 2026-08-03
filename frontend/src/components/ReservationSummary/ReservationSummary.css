@@ -4,7 +4,7 @@
     right: 24px;      
     bottom: 24px;     
 
-    height: 90px;
+    min-height: 90px;
 
     display: flex;
     align-items: center;
@@ -84,4 +84,20 @@
 .summary-button:disabled{
     background:#d6d6d6;
     color:#888;
+}
+
+.summary-equipments {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.summary-equipments span {
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #fff3e8;
+    color: #b45309;
+    font-size: 10px;
+    font-weight: 700;
 }

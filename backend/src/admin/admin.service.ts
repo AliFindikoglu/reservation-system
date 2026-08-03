@@ -28,6 +28,7 @@ import {
   UpdateAssignmentEndDateDto,
 } from "./dto/table-assignment.dto";
 import { UpdateTableEquipmentsDto } from "./dto/update-table-equipments.dto";
+import { CreateEquipmentDto } from "./dto/create-equipment.dto";
 
 type Tx = Prisma.TransactionClient;
 
@@ -1208,6 +1209,12 @@ export class AdminService {
     if (equipments.length !== dto.equipmentIds.length) {
       throw new BadRequestException("One or more selected equipments are invalid.");
     }
+    const monitorOptions = new Set(["MONITOR", "DUAL_MONITOR"]);
+    if (equipments.filter((equipment) => monitorOptions.has(equipment.code)).length > 1) {
+      throw new BadRequestException(
+        "Please select either Monitor or Dual Monitor, not both.",
+      );
+    }
     return this.prisma.$transaction(async (tx) => {
       await tx.tableEquipment.deleteMany({ where: { tableId } });
       if (dto.equipmentIds.length) {
@@ -1247,6 +1254,31 @@ export class AdminService {
         equipments: updated.equipments.map((item) => item.equipment),
       },
     }));
+  }
+
+  async createEquipment(adminUserId: string, dto: CreateEquipmentDto) {
+    const data = {
+      name: dto.name.trim(),
+      code: dto.code.trim().toUpperCase(),
+    };
+
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const equipment = await tx.equipment.create({ data });
+        await this.createAudit(tx, adminUserId, {
+          action: "CREATE_EQUIPMENT",
+          targetType: "Equipment",
+          targetId: equipment.id,
+          newValue: data,
+        });
+        return equipment;
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        throw new ConflictException("An equipment type with this name or code already exists.");
+      }
+      throw error;
+    }
   }
 
   findAuditLogs() {

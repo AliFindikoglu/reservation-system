@@ -1,4 +1,4 @@
-import { Edit3, Plus, Search, Trash2 } from "lucide-react";
+import { CalendarDays, Edit3, Plus, Search, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import Swal from "sweetalert2";
@@ -20,6 +20,8 @@ function AdminReservations() {
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("active");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [busy, setBusy] = useState(false);
@@ -37,8 +39,14 @@ function AdminReservations() {
   const visibleReservations = useMemo(() => reservations.filter((item) => {
     const haystack = `${item.user?.fullName ?? ""} ${item.user?.email ?? ""} ${item.table?.code ?? item.table?.number ?? ""}`.toLowerCase();
     const matchesFilter = filter === "all" || (filter === "active" ? !item.isCancelled : item.isCancelled);
-    return haystack.includes(query.toLowerCase()) && matchesFilter;
-  }), [reservations, query, filter]);
+    const reservationDate = item.reservationDate?.slice(0, 10) ?? "";
+    const matchesStart = !dateFrom || reservationDate >= dateFrom;
+    const matchesEnd = !dateTo || reservationDate <= dateTo;
+    return haystack.includes(query.toLowerCase()) && matchesFilter && matchesStart && matchesEnd;
+  }), [reservations, query, filter, dateFrom, dateTo]);
+
+  const hasDateFilter = Boolean(dateFrom || dateTo);
+  function clearDateFilter() { setDateFrom(""); setDateTo(""); }
 
   function openCreate() { setForm(emptyForm); setModal({ mode: "create" }); }
   function openEdit(item) {
@@ -90,8 +98,12 @@ function AdminReservations() {
       <PageHeading eyebrow="Daily bookings" title="Reservation management" description="Create, relocate and cancel reservations across the workplace." action={<button type="button" className="admin-button primary" onClick={openCreate}><Plus size={16} /> New reservation</button>} />
       <div className="admin-toolbar">
         <div className="admin-search"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by user or desk" /></div>
+        <label className="admin-date-filter"><CalendarDays size={15} /><span>From</span><input type="date" value={dateFrom} max={dateTo || undefined} onChange={(event) => setDateFrom(event.target.value)} /></label>
+        <label className="admin-date-filter"><span>To</span><input type="date" value={dateTo} min={dateFrom || undefined} onChange={(event) => setDateTo(event.target.value)} /></label>
         <select className="admin-filter" value={filter} onChange={(event) => setFilter(event.target.value)}><option value="active">Active</option><option value="cancelled">Cancelled</option><option value="all">All reservations</option></select>
+        {hasDateFilter && <button type="button" className="admin-icon-action" title="Clear date filter" onClick={clearDateFilter}><X size={15} /></button>}
       </div>
+      <div className="admin-result-summary">Showing <strong>{visibleReservations.length}</strong> of {reservations.length} reservations{hasDateFilter ? " in the selected date range" : ""}.</div>
       <section className="admin-card">
         {loading ? <LoadingState /> : error ? <ErrorState message={error} onRetry={load} /> : visibleReservations.length === 0 ? <EmptyState title="No reservations found" description="Create a reservation or change the current filters." /> : (
           <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>User</th><th>Desk</th><th>Date</th><th>Source</th><th>Status</th><th style={{ textAlign: "right" }}>Actions</th></tr></thead>

@@ -7,15 +7,16 @@ function Seat({
   isSelected,
   onClick,
   disabled = false,
+  status,
 }) {
-  let seatClass = "available";
+  let seatClass = status || "available";
 
-  if (isMine) {
+  if (isSelected) {
+    seatClass = "selected";
+  } else if (isMine) {
     seatClass = "mine";
   } else if (isReserved) {
     seatClass = "reserved";
-  } else if (isSelected) {
-    seatClass = "selected";
   }
 
   return (

@@ -10,6 +10,7 @@ function SeatGrid({
   onSeatClick,
   isUpdateMode = false,
   interactionDisabled = false,
+  adminMode = false,
 }) {
   const blocks = [
     { letter: "A", seats: [1, 2, 3, 4, 5, 6, 7, 8] },
@@ -33,9 +34,10 @@ function SeatGrid({
         isReserved={isReserved}
         isMine={isMine}
         isSelected={selectedSeat === seatNumber}
-        disabled={interactionDisabled || (isReserved && !isMine)}
+        status={adminMode ? (table?.status ?? "available").replaceAll("_", "-") : undefined}
+        disabled={interactionDisabled || (!adminMode && isReserved && !isMine)}
         onClick={() => {
-          if (!interactionDisabled && (!isReserved || isMine)) {
+          if (!interactionDisabled && (adminMode || !isReserved || isMine)) {
             onSeatClick(seatNumber);
           }
         }}

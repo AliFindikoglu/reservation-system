@@ -35,6 +35,8 @@ function Home() {
     today.toISOString().split("T")[0]
     );
 
+    const selectedTable = tableStatuses.find((table) => table.number === selectedSeat);
+
     const { login, register, currentUser, } = useAuth();
 
     //.....................................................................
@@ -229,6 +231,7 @@ async function loadTables() {
         onReserve={handleReserve}
         disabled={Boolean(activeRestriction)}
         disabledMessage="Reservations are disabled for this restricted date."
+        equipments={selectedTable?.equipments ?? []}
       />
     </div>
   );

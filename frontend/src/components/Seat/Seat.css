@@ -47,3 +47,11 @@
 .selected {
   background: #3f7bea;
 }
+
+.seat.admin-reserved {
+  background: #8b5cf6;
+}
+
+.seat.assigned {
+  background: #3f7bea;
+}
