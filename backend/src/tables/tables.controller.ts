@@ -2,6 +2,8 @@ import {
   Controller,
   Get,
   Query,
+  Param,
+  ParseIntPipe,
   UseGuards,
 } from "@nestjs/common";
 import {
@@ -16,6 +18,7 @@ import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { AvailableTablesQueryDto } from "./dto/available-tables-query.dto";
 import { AvailableTablesResponseDto } from "./dto/available-tables-response.dto";
 import { TableStatusesResponseDto } from "./dto/table-statuses-response.dto";
+import { TableDetailResponseDto } from "./dto/table-detail-response.dto";
 import { TablesService } from "./tables.service";
 
 @ApiTags("tables")
@@ -48,5 +51,13 @@ export class TablesController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.tablesService.findStatuses(query.date, user.userId);
+  }
+
+  @Get(":id")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOkResponse({ type: TableDetailResponseDto })
+  findById(@Param("id", ParseIntPipe) id: number) {
+    return this.tablesService.findById(id);
   }
 }

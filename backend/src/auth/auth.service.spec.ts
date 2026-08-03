@@ -3,6 +3,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import * as bcrypt from "bcryptjs";
+import { UserRole } from "@prisma/client";
 import { AuthService } from "./auth.service";
 
 describe("AuthService", () => {
@@ -40,6 +41,8 @@ describe("AuthService", () => {
       email: "ayse@eteration.com",
       phone: "05061112233",
       passwordHash: await bcrypt.hash("secret12", 10),
+      role: UserRole.USER,
+      isActive: true,
     });
 
     await expect(
@@ -68,6 +71,8 @@ describe("AuthService", () => {
       email: "ayse@eteration.com",
       phone: "05061112233",
       passwordHash: "gizli-hash",
+      role: UserRole.USER,
+      isActive: true,
     });
 
     await expect(service.me("u1")).resolves.toEqual({
@@ -75,6 +80,8 @@ describe("AuthService", () => {
       fullName: "Ayşe",
       email: "ayse@eteration.com",
       phone: "05061112233",
+      role: UserRole.USER,
+      isActive: true,
     });
   });
 
@@ -85,6 +92,8 @@ describe("AuthService", () => {
       email: "ayse@eteration.com",
       phone: "05069999999",
       passwordHash: "gizli-hash",
+      role: UserRole.USER,
+      isActive: true,
     });
 
     await expect(
@@ -97,6 +106,8 @@ describe("AuthService", () => {
       fullName: "Ayşe Kaya",
       email: "ayse@eteration.com",
       phone: "05069999999",
+      role: UserRole.USER,
+      isActive: true,
     });
 
     expect(users.updateProfile).toHaveBeenCalledWith("u1", {

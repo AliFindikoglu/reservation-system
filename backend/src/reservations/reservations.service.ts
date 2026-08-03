@@ -22,6 +22,18 @@ export class ReservationsService {
   async create(userId: string, dto: CreateReservationDto) {
     const reservationDate = parseReservationDate(dto.reservationDate);
     const table = await this.findTable(dto.tableNumber);
+    await this.assertReservationAllowed(userId, table.id, reservationDate);
+    const exact = await this.prisma.reservation.findFirst({
+      where: {
+        userId,
+        tableId: table.id,
+        reservationDate,
+        isCancelled: false,
+      },
+    });
+    if (exact) {
+      throw new ConflictException("This reservation already exists.");
+    }
     try {
       const reservation = await this.prisma.reservation.create({
         data: { userId, tableId: table.id, reservationDate },
@@ -63,6 +75,11 @@ export class ReservationsService {
     const tableId = dto.tableNumber
       ? (await this.findTable(dto.tableNumber)).id
       : existing.tableId;
+    await this.assertReservationAllowed(
+      userId,
+      tableId,
+      reservationDate,
+    );
     try {
       const reservation = await this.prisma.reservation.update({
         where: { id },
@@ -91,6 +108,8 @@ export class ReservationsService {
       data: {
         isCancelled: true,
         cancelledAt: new Date(),
+        cancelledByUserId: userId,
+        cancellationReason: "Cancelled by the user.",
       },
     });
   }
@@ -126,6 +145,77 @@ export class ReservationsService {
         );
       throw new ConflictException(
         "The selected table is already reserved for this date.",
+      );
+    }
+  }
+
+  private async assertReservationAllowed(
+    userId: string,
+    tableId: number,
+    reservationDate: Date,
+  ) {
+    const [restriction, userAssignment, tableAssignment, adminReservation] =
+      await Promise.all([
+      this.prisma.userRestriction.findFirst({
+        where: {
+          userId,
+          revokedAt: null,
+          startsOn: { lte: reservationDate },
+          endsOn: { gte: reservationDate },
+        },
+      }),
+      this.prisma.tableAssignment.findFirst({
+        where: {
+          userId,
+          revokedAt: null,
+          startsOn: { lte: reservationDate },
+          OR: [{ endsOn: null }, { endsOn: { gte: reservationDate } }],
+        },
+      }),
+      this.prisma.tableAssignment.findFirst({
+        where: {
+          tableId,
+          revokedAt: null,
+          startsOn: { lte: reservationDate },
+          OR: [{ endsOn: null }, { endsOn: { gte: reservationDate } }],
+        },
+      }),
+      this.prisma.reservation.findFirst({
+        where: {
+          userId,
+          reservationDate,
+          isCancelled: false,
+          createdByAdminId: { not: null },
+        },
+      }),
+    ]);
+    if (restriction) {
+      throw new ForbiddenException(
+        restriction.reason
+          ? `You cannot make reservations during this period. Reason: ${restriction.reason}`
+          : "You cannot make reservations during this restricted period.",
+      );
+    }
+    if (userAssignment && !adminReservation) {
+      throw new ConflictException(
+        "You already have an assigned table for this date.",
+      );
+    }
+    if (tableAssignment) {
+      const assignmentOwnerOverride =
+        tableAssignment.userId === userId
+          ? adminReservation
+          : await this.prisma.reservation.findFirst({
+              where: {
+                userId: tableAssignment.userId,
+                reservationDate,
+                isCancelled: false,
+                createdByAdminId: { not: null },
+              },
+            });
+      if (assignmentOwnerOverride) return;
+      throw new ConflictException(
+        "The selected table is assigned to another user for this date.",
       );
     }
   }

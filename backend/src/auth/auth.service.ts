@@ -37,6 +37,11 @@ export class AuthService {
         "Please check your email address and password.",
       );
     }
+    if (user.isActive === false) {
+      throw new UnauthorizedException(
+        "Your account is inactive. Please contact the system administrator.",
+      );
+    }
     return this.buildAuthResponse(user);
   }
 
@@ -52,6 +57,8 @@ export class AuthService {
       fullName: user.fullName,
       email: user.email,
       phone: user.phone,
+      role: user.role,
+      isActive: user.isActive,
     };
   }
 
@@ -72,6 +79,8 @@ export class AuthService {
       fullName: user.fullName,
       email: user.email,
       phone: user.phone,
+      role: user.role,
+      isActive: user.isActive,
     };
   }
 
@@ -112,6 +121,8 @@ export class AuthService {
     fullName: string;
     email: string;
     phone: string;
+    role: "USER" | "ADMIN";
+    isActive: boolean;
   }) {
     return {
       accessToken: this.jwtService.sign({ userId: user.id, email: user.email }),
@@ -120,6 +131,8 @@ export class AuthService {
         fullName: user.fullName,
         email: user.email,
         phone: user.phone,
+        role: user.role,
+        isActive: user.isActive,
       },
     };
   }

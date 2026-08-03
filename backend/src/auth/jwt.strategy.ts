@@ -20,11 +20,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: AuthenticatedUser): Promise<AuthenticatedUser> {
     const user = await this.usersService.findById(payload.userId);
-    if (!user) {
+    if (!user || user.isActive === false) {
       throw new UnauthorizedException(
-        "Your user account could not be found. Please contact the system administrator.",
+        "Your account is inactive. Please contact the system administrator.",
       );
     }
-    return { userId: user.id, email: user.email };
+    return { userId: user.id, email: user.email, role: user.role };
   }
 }

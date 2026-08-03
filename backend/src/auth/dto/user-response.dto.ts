@@ -1,4 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
+import { UserRole } from "@prisma/client";
 
 export class UserResponseDto {
   @ApiProperty({ format: "uuid" })
@@ -12,6 +13,12 @@ export class UserResponseDto {
 
   @ApiProperty({ example: "05061234215" })
   phone!: string;
+
+  @ApiProperty({ enum: UserRole, example: UserRole.USER })
+  role!: UserRole;
+
+  @ApiProperty({ example: true })
+  isActive!: boolean;
 }
 
 export class AuthResponseDto {
