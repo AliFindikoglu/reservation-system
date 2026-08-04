@@ -17,7 +17,6 @@ import { NavLink } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import "./Sidebar.css";
 
-
 const adminNavItems = [
   { to: "/admin", end: true, icon: LayoutDashboard, label: "Overview" },
   { to: "/admin/users", icon: Users, label: "Users" },
@@ -33,6 +32,7 @@ function Sidebar({ isAdmin = false }) {
 
   return (
     <aside className="sidebar">
+      {/* Brand / Logo Alanı */}
       <div className="sidebar-brand">
         <span className="sidebar-brand-mark">
           <Building2 size={27} />
@@ -43,14 +43,14 @@ function Sidebar({ isAdmin = false }) {
         </span>
       </div>
 
-
-      <nav className="sidebar-nav" aria-label="Main navigation">
+      {/* Navigasyon Linkleri */}
+      <nav className="sidebar-nav" >
         <span className="sidebar-nav-label">
           {isAdmin ? "MANAGEMENT" : "MENU"}
         </span>
 
         {isAdmin ? (
-      
+          // Admin Menüsü
           adminNavItems.map(({ to, icon: Icon, label, end }) => (
             <NavLink
               key={to}
@@ -65,7 +65,7 @@ function Sidebar({ isAdmin = false }) {
             </NavLink>
           ))
         ) : (
-         
+          // User Menüsü
           <>
             <NavLink
               to="/"
@@ -90,7 +90,6 @@ function Sidebar({ isAdmin = false }) {
                   <span>My Reservations</span>
                 </NavLink>
 
-                
                 {currentUser.role === "ADMIN" && (
                   <NavLink
                     to="/admin"
@@ -108,29 +107,31 @@ function Sidebar({ isAdmin = false }) {
         )}
       </nav>
 
+      {/* Alt Butonlar - Sadece Kullanıcı Giriş Yapmışsa Görünür */}
+      {currentUser && (
+        <div className="sidebar-bottom">
+          {isAdmin ? (
+            <NavLink to="/" className="sidebar-bottom-btn">
+              <BarChart3 size={17} />
+              <span>User workspace</span>
+            </NavLink>
+          ) : (
+            <button type="button" className="sidebar-bottom-btn">
+              <Settings size={17} />
+              <span>Settings</span>
+            </button>
+          )}
 
-      <div className="sidebar-bottom">
-        {isAdmin ? (
-          <NavLink to="/" className="sidebar-bottom-btn">
-            <BarChart3 size={17} />
-            <span>User workspace</span>
-          </NavLink>
-        ) : (
-          <button type="button" className="sidebar-bottom-btn">
-            <Settings size={17} />
-            <span>Settings</span>
+          <button
+            type="button"
+            className="sidebar-bottom-btn logout-btn"
+            onClick={logout}
+          >
+            <LogOut size={17} />
+            <span>Sign out</span>
           </button>
-        )}
-
-        <button
-          type="button"
-          className="sidebar-bottom-btn logout-btn"
-          onClick={logout}
-        >
-          <LogOut size={17} />
-          <span>Sign out</span>
-        </button>
-      </div>
+        </div>
+      )}
     </aside>
   );
 }

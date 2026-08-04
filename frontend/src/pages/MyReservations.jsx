@@ -12,7 +12,6 @@ import "../styles/MyReservations.css";
 import toast from "react-hot-toast";
 import Swal from "sweetalert2";
 
-
 function MyReservations() {
   const [reservations, setReservations] = useState([]);
 
@@ -24,14 +23,14 @@ function MyReservations() {
     setIsUpdateOpen(true);
   }
 
-async function loadReservations() {
-  const data = await getMyReservations();
-  setReservations(data);
-}
+  async function loadReservations() {
+    const data = await getMyReservations();
+    setReservations(data);
+  }
 
-useEffect(() => {
-  loadReservations();
-}, []);
+  useEffect(() => {
+    loadReservations();
+  }, []);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -58,8 +57,8 @@ useEffect(() => {
         new Date(b.reservationDate) - new Date(a.reservationDate)
     );
 
-    async function handleCancel(id) {
-      const result = await Swal.fire({
+  async function handleCancel(id) {
+    const result = await Swal.fire({
       title: "Cancel reservation?",
       text: "This action cannot be undone.",
       icon: "warning",
@@ -73,108 +72,111 @@ useEffect(() => {
       padding: "1.5rem",
       background: "#ffffff",
       color: "#1f2937",
-     backdrop: `
-    rgba(15,23,42,0.45)
-    backdrop-filter: blur(10px)
-  `,
+      backdrop: `
+        rgba(15,23,42,0.45)
+        backdrop-filter: blur(10px)
+      `,
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await cancelReservation(id);
+      await loadReservations();
+      await Swal.fire({
+        icon: "success",
+        title: "Reservation cancelled",
+        text: "Your reservation has been successfully cancelled.",
+        timer: 1800,
+        showConfirmButton: false,
+        width: 360,
+        padding: "1.4rem",
       });
-
-  if (!result.isConfirmed) return;
-
-  try {
-    await cancelReservation(id);
-    await loadReservations();
-    await Swal.fire({
-      icon: "success",
-      title: "Reservation cancelled",
-      text: "Your reservation has been successfully cancelled.",
-      timer: 1800,
-      showConfirmButton: false,
-      width: 360,
-      padding: "1.4rem",
-    });
-
-  } catch (error){
-    console.error(error);
-Swal.fire({
-      icon: "error",
-      title: "Cancellation failed",
-      text: "Please try again later.",
-      width: 360,
-      padding: "1.4rem",
-      borderRadius: 18,
-    });
+    } catch (error) {
+      console.error(error);
+      Swal.fire({
+        icon: "error",
+        title: "Cancellation failed",
+        text: "Please try again later.",
+        width: 360,
+        padding: "1.4rem",
+        borderRadius: 18,
+      });
+    }
   }
-}
 
   return (
     <div className="home-page">
       <SideBar />
 
-      <div className="main-content">
-        <div className="header-card">
-          <Header
-            title="My Reservations"
-            subtitle="View and manage your upcoming reservations."
-          />
+      {/* 📍 KİLİT NOKTA: Header ve İçeriği toplayan ana kapsayıcı */}
+      <div className="home-main-wrapper">
+        
+        {/* 📍 Header artık kutuların dışında, doğrudan tepeye sıfırlanır */}
+        <Header
+          title="My Reservations"
+          subtitle="View and manage your upcoming reservations."
+        />
+
+        {/* Header'ın altındaki padding'li ana içerik alanı */}
+        <div className="main-content">
+          <main className="reservations-page">
+            <section className="reservation-section">
+              <h2>Upcoming Reservations</h2>
+
+              <div className="reservation-list">
+                {upcomingReservations.length === 0 ? (
+                  <div className="empty-state">
+                    <CalendarX2 size={42} />
+                    <h3>No upcoming reservations</h3>
+                    <p>You don't have any upcoming reservations yet.</p>
+                  </div>
+                ) : (
+                  upcomingReservations.map((reservation) => (
+                    <ReservationCard
+                      key={reservation.id}
+                      reservation={reservation}
+                      onUpdate={handleUpdate}
+                      onCancel={handleCancel}
+                    />
+                  ))
+                )}
+              </div>
+            </section>
+
+            <section className="reservation-section">
+              <h2>Past Reservations</h2>
+
+              <div className="reservation-list">
+                {pastReservations.length === 0 ? (
+                  <div className="empty-state">
+                    <CalendarX2 size={42} />
+                    <h3>No past reservations</h3>
+                    <p>Your reservation history will appear here.</p>
+                  </div>
+                ) : (
+                  pastReservations.map((reservation) => (
+                    <ReservationCard
+                      key={reservation.id}
+                      reservation={reservation}
+                      isPast
+                    />
+                  ))
+                )}
+              </div>
+            </section>
+          </main>
         </div>
-
-        <main className="reservations-page">
-          <section className="reservation-section">
-            <h2>Upcoming Reservations</h2>
-
-            <div className="reservation-list">
-              {upcomingReservations.length === 0 ? (
-                <div className="empty-state">
-                  <CalendarX2 size={42} />
-                  <h3>No upcoming reservations</h3>
-                  <p>You don't have any upcoming reservations yet.</p>
-                </div>
-              ) : (
-                upcomingReservations.map((reservation) => (
-                  <ReservationCard
-                    key={reservation.id}
-                    reservation={reservation}
-                    onUpdate={handleUpdate}
-                    onCancel={handleCancel}
-                  />
-                ))
-              )}
-            </div>
-          </section>
-
-          <section className="reservation-section">
-            <h2>Past Reservations</h2>
-
-            <div className="reservation-list">
-              {pastReservations.length === 0 ? (
-                <div className="empty-state">
-                  <CalendarX2 size={42} />
-                  <h3>No past reservations</h3>
-                  <p>Your reservation history will appear here.</p>
-                </div>
-              ) : (
-                pastReservations.map((reservation) => (
-                  <ReservationCard
-                    key={reservation.id}
-                    reservation={reservation}
-                    isPast
-                  />
-                ))
-              )}
-            </div>
-          </section>
-        </main>
       </div>
 
       <UpdateReservationModal
         isOpen={isUpdateOpen}
         reservation={selectedReservation}
         onClose={() => setIsUpdateOpen(false)}
-          onSuccess={async () => {
-            await loadReservations();
-            setIsUpdateOpen(false); 
-          }}
+        onSuccess={async () => {
+          await loadReservations();
+          setIsUpdateOpen(false);
+        }}
       />
     </div>
   );

@@ -1,6 +1,4 @@
-/* =========================
-   GOOGLE FONT & VARIABLES
-========================= */
+
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
 :root {
@@ -18,9 +16,7 @@
     font-family: "Inter", sans-serif;
 }
 
-/* =========================
-   KROKİ KAPSAYICISI (CONTAINER)
-========================= */
+
 .office-container {
     width: 100%;
     display: flex;
@@ -30,15 +26,11 @@
     border: 2px solid var(--outline);
     box-shadow: var(--shadow);
     overflow: hidden;
-    
-    /* İŞTE KRİTİK NOKTA 1: Alttaki Sabit (Fixed) Reservation Card'ın
-       arkasında kalmaması için krokinin en altına dış boşluk bırakıyoruz */
-    margin-bottom: 140px !important; 
+    transition: transform 85%;
+    margin-bottom: 80px !important; 
 }
+    
 
-/* =========================
-   TOP AREA (ÜST ODALAR)
-========================= */
 .office-top {
     height: 90px;
     display: flex;
@@ -70,7 +62,7 @@
     border-bottom: none;
 }
 
-/* KORİDOR */
+
 .hallway {
     width: 90px;
     display: flex;
@@ -225,29 +217,25 @@
     z-index: 1;
 }
 
-/* ИŞTE KRİTİK NOKTA 2: KOLTUKLAR VE BİLEŞENLERİ (SEAT) ÇİZGİLERİN
-   ÜSTÜNE ÇIKARAN KATMAN Z-INDEX ZORLAMASI */
+
 .seat-column {
     position: absolute;
     top: 10px;
     display: flex;
     flex-direction: column;
     gap: 20px;
-    z-index: 999 !important; /* Koltuk sütununu çizginin kesinlikle üstüne taşır */
+    z-index: 999 !important;
 }
 
 .seat-column.left { left: -14px; }
 .seat-column.right { right: -14px; }
 
-/* Koltuk bileşeninin kendisi (Seat.jsx) için z-index zorlaması */
 .seat-column > * {
     position: relative !important;
     z-index: 1000 !important;
 }
 
-/* =========================
-   BAR & LOUNGE AREA
-========================= */
+
 .lounge {
     width: 110px;
     height: 220px;
@@ -456,3 +444,4 @@
 .storage:hover, .office-2:hover, .office-1:hover {
     background: #f1f5f9;
 }
+

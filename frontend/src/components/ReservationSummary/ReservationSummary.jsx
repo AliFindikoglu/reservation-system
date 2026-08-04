@@ -30,7 +30,7 @@ function ReservationSummary({
             ? `Desk ${getSeatLabel(selectedSeat)} selected for ${formattedDate}`              : "Choose a desk from the office layout."}
           </p>
           {selectedSeat && equipments.length > 0 && (
-            <div className="summary-equipments" aria-label="Desk equipment">
+            <div className="summary-equipments" >
               {equipments.map((equipment) => <span key={equipment.id}>{equipment.name}</span>)}
             </div>
           )}

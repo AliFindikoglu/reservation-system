@@ -21,7 +21,6 @@ function DonutChart({ value, total, label, color = "#ff6b00" }) {
       <div
         className="admin-donut"
         style={{ "--donut-angle": `${percentage * 3.6}deg`, "--donut-color": color }}
-        aria-label={`${label}: ${percentage}%`}
       >
         <span>{percentage}%</span>
       </div>

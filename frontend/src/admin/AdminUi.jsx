@@ -38,13 +38,11 @@ export function Modal({ title, description, children, onClose, wide = false }) {
       <section
         className={`admin-modal${wide ? " wide" : ""}`}
         role="dialog"
-        aria-modal="true"
-        aria-label={title}
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="admin-modal-header">
           <div><h3>{title}</h3>{description && <p>{description}</p>}</div>
-          <button type="button" onClick={onClose} aria-label="Close"><X size={20} /></button>
+          <button type="button" onClick={onClose} ><X size={20} /></button>
         </div>
         {children}
       </section>
