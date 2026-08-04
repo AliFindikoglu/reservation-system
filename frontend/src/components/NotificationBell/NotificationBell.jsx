@@ -53,8 +53,6 @@ function NotificationBell() {
       <button
         type="button"
         className="notification-bell-button"
-        aria-label="Notifications"
-        aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
       >
         <Bell size={19} />
@@ -62,7 +60,7 @@ function NotificationBell() {
       </button>
 
       {open && (
-        <section className="notification-panel" aria-label="Your notifications">
+        <section className="notification-panel" >
           <header><div><strong>Notifications</strong><span>{unreadCount} unread</span></div></header>
           <div className="notification-list">
             {loading ? <p className="notification-empty">Loading notifications...</p> : notifications.length === 0 ? (

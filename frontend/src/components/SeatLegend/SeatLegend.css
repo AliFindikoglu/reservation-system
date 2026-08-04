@@ -6,7 +6,8 @@
 
     width:fit-content;
 
-    margin:0 auto 12px;
+    margin: 8px auto;
+    margin-top: -20px;
     padding:12px 22px;
 
     background:#ffffff;
@@ -35,22 +36,20 @@
     border-radius:6px;
 }
 
-/* Available */
 .legend-color.available{
     background:#0ae90a;
 }
 
-/* Selected */
+
 .legend-color.selected{
     background:#3b82f6;
 }
 
-/* My Reservation */
+
 .legend-color.mine{
     background:#f59e0b;
 }
 
-/* Reserved */
 .legend-color.reserved{
-    background:#ec2b2b;
+    background:#908e8e;
 }

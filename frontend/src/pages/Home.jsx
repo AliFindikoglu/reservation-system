@@ -144,66 +144,67 @@ function Home() {
 
   return (
     <div className="home-page">
-      {/* Yeni Ortak Sidebar Bileşeni */}
       <Sidebar />
 
-      <div className="main-content">
-        <div className="hero">
-          <div className="header-card">
-            <Header
-              onLogin={() => setIsLoginOpen(true)}
-              onRegister={() => setIsRegisterOpen(true)}
-            >
-              <DateSelector
-                selectedDate={new Date(selectedDate)}
-                onDateChange={(date) =>
-                  setSelectedDate(date.toISOString().split("T")[0])
-                }
-                minDate={today}
-                maxDate={maxDate}
-              />
-            </Header>
+      <div className="home-main-wrapper">
+        
+        <Header
+          onLogin={() => setIsLoginOpen(true)}
+          onRegister={() => setIsRegisterOpen(true)}
+        >
+          <DateSelector
+            selectedDate={new Date(selectedDate)}
+            onDateChange={(date) =>
+              setSelectedDate(date.toISOString().split("T")[0])
+            }
+            minDate={today}
+            maxDate={maxDate}
+          />
+        </Header>
+
+        <div className="main-content">
+          <div className="hero">
+            {activeRestriction && (
+              <div className="restriction-banner" role="alert">
+                <strong>Reservation access restricted</strong>
+                <span>
+                  You cannot select or reserve a desk for this date.
+                  {activeRestriction.reason &&
+                    ` Reason: ${activeRestriction.reason}`}
+                </span>
+              </div>
+            )}
+
+            <SeatLegend />
+
+            <SeatGrid
+              tableStatuses={tableStatuses}
+              selectedSeat={selectedSeat}
+              onSeatClick={handleSeatClick}
+              interactionDisabled={Boolean(activeRestriction)}
+            />
+            
+
+            <LoginModal
+              isOpen={isLoginOpen}
+              onClose={() => setIsLoginOpen(false)}
+              onOpenRegister={() => {
+                setIsLoginOpen(false);
+                setIsRegisterOpen(true);
+              }}
+              onLogin={handleLogin}
+            />
+
+            <RegisterModal
+              isOpen={isRegisterOpen}
+              onClose={() => setIsRegisterOpen(false)}
+              onOpenLogin={() => {
+                setIsRegisterOpen(false);
+                setIsLoginOpen(true);
+              }}
+              onRegister={handleRegister}
+            />
           </div>
-
-          <SeatLegend />
-
-          {activeRestriction && (
-            <div className="restriction-banner" role="alert">
-              <strong>Reservation access restricted</strong>
-              <span>
-                You cannot select or reserve a desk for this date.
-                {activeRestriction.reason &&
-                  ` Reason: ${activeRestriction.reason}`}
-              </span>
-            </div>
-          )}
-
-          <SeatGrid
-            tableStatuses={tableStatuses}
-            selectedSeat={selectedSeat}
-            onSeatClick={handleSeatClick}
-            interactionDisabled={Boolean(activeRestriction)}
-          />
-
-          <LoginModal
-            isOpen={isLoginOpen}
-            onClose={() => setIsLoginOpen(false)}
-            onOpenRegister={() => {
-              setIsLoginOpen(false);
-              setIsRegisterOpen(true);
-            }}
-            onLogin={handleLogin}
-          />
-
-          <RegisterModal
-            isOpen={isRegisterOpen}
-            onClose={() => setIsRegisterOpen(false)}
-            onOpenLogin={() => {
-              setIsRegisterOpen(false);
-              setIsLoginOpen(true);
-            }}
-            onRegister={handleRegister}
-          />
         </div>
       </div>
 
