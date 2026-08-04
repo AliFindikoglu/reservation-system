@@ -145,7 +145,7 @@ function SeatGrid({
       </div>
 
       {/* ALT PENCERE DUVARI */}
-      <div className="window-wall">WİNDOWS</div>
+      <div className="window-wall">WINDOWS</div>
     </div>
   );
 }
