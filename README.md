@@ -118,6 +118,8 @@ Başarılı yanıt `200` durum koduyla kayıt yanıtıyla aynı yapıdadır.
 
 Admin endpoint’leri `Authorization: Bearer <accessToken>` ve `ADMIN` rolü gerektirir:
 
+Admin dolu bir masayı başka kullanıcıya verirken `replacementTableNumber` ile mevcut kullanıcıyı boş bir masaya taşıyabilir. Taşınma preview aşamasında açıkça gösterilir ve ana admin rezervasyonu iptal edildiğinde bağlı replacement rezervasyonu da otomatik olarak soft-cancel edilir.
+
 - `/admin/users` — aktif/pasif kullanıcıları listeleme, rol ve durum değiştirme.
 - `/admin/reservations` — tüm rezervasyonları görme, önizleme, oluşturma, güncelleme ve soft-cancel.
 - `/admin/table-assignments` — tarih aralıklı masa atamalarını yönetme.

@@ -31,6 +31,12 @@ import { UpdateTableEquipmentsDto } from "./dto/update-table-equipments.dto";
 import { CreateEquipmentDto } from "./dto/create-equipment.dto";
 
 type Tx = Prisma.TransactionClient;
+type ReservationWithTableAndUser = Prisma.ReservationGetPayload<{
+  include: { table: true; user: true };
+}>;
+type AssignmentWithTableAndUser = Prisma.TableAssignmentGetPayload<{
+  include: { table: true; user: true };
+}>;
 
 @Injectable()
 export class AdminService {
@@ -258,6 +264,19 @@ export class AdminService {
       userAssignment,
       tableAssignment,
     ]);
+    const replacement = await this.buildReplacementPlan(this.prisma, {
+      replacementTableNumber: dto.replacementTableNumber,
+      targetTable: table,
+      selectedUserId: user.id,
+      date,
+      tableReservation,
+      tableAssignment,
+      ignoredReservationIds: conflicts
+        .filter((conflict): conflict is ReservationWithTableAndUser =>
+          "reservationDate" in conflict,
+        )
+        .map((conflict) => conflict.id),
+    });
     return {
       requiresConfirmation: conflicts.length > 0,
       target: {
@@ -270,6 +289,7 @@ export class AdminService {
           ? this.reservationConflictResponse(conflict)
           : this.assignmentConflictResponse(conflict),
       ),
+      replacement,
     };
   }
 
@@ -300,6 +320,17 @@ export class AdminService {
         }),
         await this.findAssignmentForDate(tx, { tableId: table.id, date }),
       ]);
+      const replacementPlan = await this.buildReplacementPlan(tx, {
+        replacementTableNumber: dto.replacementTableNumber,
+        targetTable: table,
+        selectedUserId: dto.userId,
+        date,
+        tableReservation:
+          affected.find((item) => item.tableId === table.id) ?? null,
+        tableAssignment:
+          assignmentConflicts.find((item) => item.tableId === table.id) ?? null,
+        ignoredReservationIds: affected.map((item) => item.id),
+      });
       const now = new Date();
       if (affected.length) {
         await tx.reservation.updateMany({
@@ -313,26 +344,6 @@ export class AdminService {
         });
       }
 
-      if (dto.replacementTableNumber !== undefined) {
-        const displacedReservation = affected.find(
-          (item) => item.tableId === table.id && item.userId !== dto.userId,
-        );
-        const displacedAssignment = assignmentConflicts.find(
-          (item) => item.tableId === table.id && item.userId !== dto.userId,
-        );
-        const displacedUserId =
-          displacedReservation?.userId ?? displacedAssignment?.userId;
-        if (displacedUserId) {
-          await this.createReplacementReservation(
-            tx,
-            adminUserId,
-            displacedUserId,
-            date,
-            dto.replacementTableNumber,
-          );
-        }
-      }
-
       const reservation = await tx.reservation.create({
         data: {
           userId: dto.userId,
@@ -343,7 +354,22 @@ export class AdminService {
         include: { table: true, user: true },
       });
 
-      for (const item of affected.filter((item) => item.userId !== dto.userId)) {
+      const replacementReservation = replacementPlan
+        ? await this.createReplacementReservation(
+            tx,
+            adminUserId,
+            replacementPlan.displacedUser.id,
+            date,
+            replacementPlan.table.number,
+            reservation.id,
+          )
+        : null;
+
+      for (const item of affected.filter(
+        (item) =>
+          item.userId !== dto.userId &&
+          item.userId !== replacementPlan?.displacedUser.id,
+      )) {
         await this.createNotification(tx, {
           userId: item.userId,
           type: "RESERVATION_OVERRIDDEN",
@@ -355,7 +381,9 @@ export class AdminService {
           relatedEntityId: item.id,
         });
       }
-      for (const assignment of assignmentConflicts) {
+      for (const assignment of assignmentConflicts.filter(
+        (item) => item.userId !== replacementPlan?.displacedUser.id,
+      )) {
         await this.createNotification(tx, {
           userId: assignment.userId,
           type: "TABLE_ASSIGNMENT_OVERRIDDEN",
@@ -365,6 +393,16 @@ export class AdminService {
             : `Your table assignment is unavailable on ${dto.reservationDate} because of an administrator reservation.`,
           relatedEntityType: "TableAssignment",
           relatedEntityId: assignment.id,
+        });
+      }
+      if (replacementReservation && replacementPlan) {
+        await this.createNotification(tx, {
+          userId: replacementPlan.displacedUser.id,
+          type: "RESERVATION_RELOCATED",
+          title: "Reservation relocated",
+          message: `An administrator moved your reservation to table ${replacementPlan.table.code} for ${dto.reservationDate}.`,
+          relatedEntityType: "Reservation",
+          relatedEntityId: replacementReservation.id,
         });
       }
       await this.createNotification(tx, {
@@ -382,7 +420,12 @@ export class AdminService {
         newValue: this.reservationAuditValue(reservation),
         reason: dto.reason?.trim(),
       });
-        return this.reservationResponse(reservation);
+        return {
+          ...this.reservationResponse(reservation),
+          replacementReservation: replacementReservation
+            ? this.reservationResponse(replacementReservation)
+            : null,
+        };
       });
     } catch (error) {
       if (this.isDatabaseConflict(error)) {
@@ -401,7 +444,11 @@ export class AdminService {
   ) {
     const existing = await this.prisma.reservation.findUnique({
       where: { id },
-      include: { table: true, user: true },
+      include: {
+        table: true,
+        user: true,
+        replacementReservation: { include: { table: true, user: true } },
+      },
     });
     if (!existing) throw new NotFoundException("Reservation not found.");
     if (existing.isCancelled) {
@@ -450,6 +497,27 @@ export class AdminService {
       );
     }
     return this.prisma.$transaction(async (tx) => {
+      if (existing.replacementReservation && !existing.replacementReservation.isCancelled) {
+        await tx.reservation.update({
+          where: { id: existing.replacementReservation.id },
+          data: {
+            isCancelled: true,
+            cancelledAt: new Date(),
+            cancelledByUserId: adminUserId,
+            cancellationReason:
+              "The related administrator reservation was updated.",
+          },
+        });
+        await this.createNotification(tx, {
+          userId: existing.replacementReservation.userId,
+          type: "REPLACEMENT_RESERVATION_CANCELLED",
+          title: "Replacement reservation cancelled",
+          message:
+            "Your replacement reservation was cancelled because the related administrator reservation was updated.",
+          relatedEntityType: "Reservation",
+          relatedEntityId: existing.replacementReservation.id,
+        });
+      }
       if (conflicts.length) {
         await tx.reservation.updateMany({
           where: { id: { in: conflicts.map((item) => item.id) } },
@@ -511,7 +579,11 @@ export class AdminService {
   async previewReservationUpdate(id: string, dto: UpdateAdminReservationDto) {
     const existing = await this.prisma.reservation.findUnique({
       where: { id },
-      include: { table: true, user: true },
+      include: {
+        table: true,
+        user: true,
+        replacementReservation: { include: { table: true, user: true } },
+      },
     });
     if (!existing) throw new NotFoundException("Reservation not found.");
     if (existing.isCancelled) {
@@ -537,16 +609,23 @@ export class AdminService {
       this.findAssignmentForDate(this.prisma, { userId, date }),
       this.findAssignmentForDate(this.prisma, { tableId: table.id, date }),
     ]);
+    const impactedReservations = this.uniqueById([
+      ...reservations,
+      existing.replacementReservation?.isCancelled
+        ? null
+        : existing.replacementReservation,
+    ]);
     const assignments = this.uniqueById([userAssignment, tableAssignment]);
     return {
-      requiresConfirmation: reservations.length > 0 || assignments.length > 0,
+      requiresConfirmation:
+        impactedReservations.length > 0 || assignments.length > 0,
       target: {
         user: { id: user.id, fullName: user.fullName, email: user.email },
         table: { id: table.id, number: table.number, code: table.code },
         reservationDate,
       },
       conflicts: {
-        reservations: reservations.map((item) =>
+        reservations: impactedReservations.map((item) =>
           this.reservationConflictResponse(item),
         ),
         assignments: assignments.map((item) =>
@@ -563,22 +642,50 @@ export class AdminService {
   ) {
     const reservation = await this.prisma.reservation.findUnique({
       where: { id },
-      include: { table: true, user: true },
+      include: {
+        table: true,
+        user: true,
+        replacementReservation: { include: { table: true, user: true } },
+      },
     });
     if (!reservation) throw new NotFoundException("Reservation not found.");
     if (reservation.isCancelled) {
       throw new ConflictException("This reservation is already cancelled.");
     }
     await this.prisma.$transaction(async (tx) => {
+      const cancelledAt = new Date();
       await tx.reservation.update({
         where: { id },
         data: {
           isCancelled: true,
-          cancelledAt: new Date(),
+          cancelledAt,
           cancelledByUserId: adminUserId,
           cancellationReason: dto.reason?.trim() || "Cancelled by an administrator.",
         },
       });
+      if (reservation.replacementReservation && !reservation.replacementReservation.isCancelled) {
+        await tx.reservation.update({
+          where: { id: reservation.replacementReservation.id },
+          data: {
+            isCancelled: true,
+            cancelledAt,
+            cancelledByUserId: adminUserId,
+            cancellationReason:
+              dto.reason?.trim() ||
+              "The related administrator reservation was cancelled.",
+          },
+        });
+        await this.createNotification(tx, {
+          userId: reservation.replacementReservation.userId,
+          type: "REPLACEMENT_RESERVATION_CANCELLED",
+          title: "Replacement reservation cancelled",
+          message: dto.reason?.trim()
+            ? `Your replacement reservation was cancelled by an administrator. Reason: ${dto.reason.trim()}`
+            : "Your replacement reservation was cancelled because the related administrator reservation was cancelled.",
+          relatedEntityType: "Reservation",
+          relatedEntityId: reservation.replacementReservation.id,
+        });
+      }
       await this.createNotification(tx, {
         userId: reservation.userId,
         type: "RESERVATION_CANCELLED",
@@ -1464,12 +1571,126 @@ export class AdminService {
     });
   }
 
+  private async buildReplacementPlan(
+    database: PrismaService | Tx,
+    input: {
+      replacementTableNumber?: number;
+      targetTable: { id: number; number: number; code: string };
+      selectedUserId: string;
+      date: Date;
+      tableReservation: ReservationWithTableAndUser | null;
+      tableAssignment: AssignmentWithTableAndUser | null;
+      ignoredReservationIds?: string[];
+    },
+  ) {
+    if (input.replacementTableNumber === undefined) return null;
+    if (input.replacementTableNumber === input.targetTable.number) {
+      throw new BadRequestException(
+        "The replacement table must be different from the target table.",
+      );
+    }
+
+    const displacedReservation =
+      input.tableReservation?.userId !== input.selectedUserId
+        ? input.tableReservation
+        : null;
+    const displacedAssignment =
+      input.tableAssignment?.userId !== input.selectedUserId
+        ? input.tableAssignment
+        : null;
+    const displaced = displacedReservation ?? displacedAssignment;
+    if (!displaced) {
+      throw new BadRequestException(
+        "A replacement table can only be selected when another user occupies the target table.",
+      );
+    }
+
+    const replacementTable = await database.table.findUnique({
+      where: { number: input.replacementTableNumber },
+    });
+    if (!replacementTable) {
+      throw new NotFoundException("Replacement table not found.");
+    }
+
+    const ignoredReservationIds = input.ignoredReservationIds ?? [];
+    const [restriction, tableReservation, tableAssignment, userReservation] =
+      await Promise.all([
+        database.userRestriction.findFirst({
+          where: {
+            userId: displaced.userId,
+            revokedAt: null,
+            startsOn: { lte: input.date },
+            endsOn: { gte: input.date },
+          },
+        }),
+        database.reservation.findFirst({
+          where: {
+            tableId: replacementTable.id,
+            reservationDate: input.date,
+            isCancelled: false,
+            ...(ignoredReservationIds.length
+              ? { id: { notIn: ignoredReservationIds } }
+              : {}),
+          },
+        }),
+        this.findAssignmentForDate(database, {
+          tableId: replacementTable.id,
+          date: input.date,
+        }),
+        database.reservation.findFirst({
+          where: {
+            userId: displaced.userId,
+            reservationDate: input.date,
+            isCancelled: false,
+            id: {
+              notIn: [
+                ...(displacedReservation ? [displacedReservation.id] : []),
+                ...ignoredReservationIds,
+              ],
+            },
+          },
+        }),
+      ]);
+
+    if (restriction) {
+      throw new ConflictException(
+        "The displaced user has a restriction for the selected date.",
+      );
+    }
+    if (tableReservation || tableAssignment) {
+      throw new ConflictException(
+        "The selected replacement table is not available.",
+      );
+    }
+    if (userReservation) {
+      throw new ConflictException(
+        "The displaced user already has another reservation for the selected date.",
+      );
+    }
+
+    return {
+      displacedUser: {
+        id: displaced.user.id,
+        fullName: displaced.user.fullName,
+        email: displaced.user.email,
+      },
+      table: {
+        id: replacementTable.id,
+        number: replacementTable.number,
+        code: replacementTable.code,
+      },
+      source: displacedReservation ? "reservation" : "table_assignment",
+      sourceId: displaced.id,
+    };
+  }
+
   private async createReplacementReservation(
     tx: Tx,
     adminUserId: string,
     userId: string,
     date: Date,
     tableNumber: number,
+    replacementForReservationId: string,
   ) {
     const user = await tx.user.findUnique({ where: { id: userId } });
     if (!user?.isActive) {
@@ -1507,7 +1728,9 @@ export class AdminService {
         tableId: table.id,
         reservationDate: date,
         createdByAdminId: adminUserId,
+        replacementForReservationId,
       },
+      include: { table: true, user: true },
     });
   }
 
