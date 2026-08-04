@@ -45,21 +45,24 @@ model TableEquipment {
 }
 
 model Reservation {
-  id                 String    @id @default(uuid())
-  reservationDate    DateTime  @db.Date
-  tableId             Int
-  userId              String
-  createdByAdminId    String?
-  isCancelled         Boolean   @default(false)
-  cancelledAt         DateTime?
-  cancelledByUserId   String?
-  cancellationReason String?
-  table                Table     @relation(fields: [tableId], references: [id], onDelete: Restrict)
-  user                 User      @relation("UserReservations", fields: [userId], references: [id], onDelete: Restrict)
-  createdByAdmin       User?     @relation("ReservationCreatedByAdmin", fields: [createdByAdminId], references: [id], onDelete: SetNull)
-  cancelledByUser      User?     @relation("ReservationCancelledBy", fields: [cancelledByUserId], references: [id], onDelete: SetNull)
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  id                          String    @id @default(uuid())
+  reservationDate             DateTime  @db.Date
+  tableId                     Int
+  userId                      String
+  createdByAdminId            String?
+  isCancelled                 Boolean   @default(false)
+  cancelledAt                 DateTime?
+  cancelledByUserId           String?
+  cancellationReason          String?
+  replacementForReservationId String?   @unique
+  table                       Table     @relation(fields: [tableId], references: [id], onDelete: Restrict)
+  user                        User      @relation("UserReservations", fields: [userId], references: [id], onDelete: Restrict)
+  createdByAdmin              User?     @relation("ReservationCreatedByAdmin", fields: [createdByAdminId], references: [id], onDelete: SetNull)
+  cancelledByUser             User?     @relation("ReservationCancelledBy", fields: [cancelledByUserId], references: [id], onDelete: SetNull)
+  replacementForReservation   Reservation? @relation("ReservationReplacement", fields: [replacementForReservationId], references: [id], onDelete: SetNull)
+  replacementReservation      Reservation? @relation("ReservationReplacement")
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
 
   @@index([reservationDate])
   @@index([createdByAdminId])

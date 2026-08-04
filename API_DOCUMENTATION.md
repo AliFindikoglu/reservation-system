@@ -619,7 +619,11 @@ Oluşturma ve önizleme gövdesi:
 }
 ```
 
-`replacementTableNumber` isteğe bağlıdır ve yerinden edilen kullanıcıya aynı transaction içerisinde yeni masa verilmesini sağlar. Aynı aktif rezervasyon zaten varsa `409 Conflict` ve `This reservation already exists.` mesajı döner.
+`replacementTableNumber` isteğe bağlıdır ve hedef masanın mevcut kullanıcısını aynı transaction içerisinde başka bir masaya taşır. Replacement masa hedef masadan farklı ve ilgili tarihte boş olmalıdır. Hedef masada taşınacak başka bir kullanıcı yoksa alan kabul edilmez.
+
+Preview yanıtındaki `replacement` alanı taşınacak kullanıcıyı, yeni masayı ve çakışmanın rezervasyon mu yoksa masa ataması mı olduğunu gösterir. Admin rezervasyonu oluşturulduğunda replacement rezervasyonu ana rezervasyonla ilişkilendirilir. Ana rezervasyon güncellenir veya iptal edilirse bağlı replacement rezervasyonu da soft-cancel edilir.
+
+Aynı aktif rezervasyon zaten varsa `409 Conflict` ve `This reservation already exists.` mesajı döner.
 
 Admin günlük rezervasyonu, mevcut `TableAssignment` kaydını silmez; yalnız ilgili tarih için ondan daha yüksek önceliklidir. Günlük kayıt iptal edilirse atama tekrar geçerli olur.
 

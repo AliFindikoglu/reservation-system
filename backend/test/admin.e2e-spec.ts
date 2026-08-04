@@ -253,6 +253,116 @@ describe("Admin reservation domain (e2e)", () => {
       expect.objectContaining({ number: 10, status: "mine" }),
     );
 
+    const replacementDate = dateFromNow(7);
+    const displacedReservation = await request(server)
+      .post("/reservations")
+      .set("Authorization", `Bearer ${assignedToken}`)
+      .send({ tableNumber: 13, reservationDate: replacementDate })
+      .expect(201);
+
+    await request(server)
+      .post("/admin/reservations/preview")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        userId: otherRegistration.body.user.id,
+        tableNumber: 15,
+        reservationDate: replacementDate,
+        replacementTableNumber: 16,
+      })
+      .expect(400, {
+        statusCode: 400,
+        message:
+          "A replacement table can only be selected when another user occupies the target table.",
+      });
+
+    await request(server)
+      .post("/admin/reservations/preview")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        userId: otherRegistration.body.user.id,
+        tableNumber: 13,
+        reservationDate: replacementDate,
+        replacementTableNumber: 13,
+      })
+      .expect(400, {
+        statusCode: 400,
+        message: "The replacement table must be different from the target table.",
+      });
+
+    const replacementPreview = await request(server)
+      .post("/admin/reservations/preview")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        userId: otherRegistration.body.user.id,
+        tableNumber: 13,
+        reservationDate: replacementDate,
+        replacementTableNumber: 14,
+      })
+      .expect(200);
+    expect(replacementPreview.body).toEqual(
+      expect.objectContaining({
+        requiresConfirmation: true,
+        replacement: expect.objectContaining({
+          displacedUser: expect.objectContaining({
+            id: assignedRegistration.body.user.id,
+          }),
+          table: expect.objectContaining({ number: 14, code: "B6" }),
+          source: "reservation",
+        }),
+      }),
+    );
+
+    const replacementOverride = await request(server)
+      .post("/admin/reservations")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        userId: otherRegistration.body.user.id,
+        tableNumber: 13,
+        reservationDate: replacementDate,
+        replacementTableNumber: 14,
+        confirmOverride: true,
+      })
+      .expect(201);
+    expect(replacementOverride.body.replacementReservation).toEqual(
+      expect.objectContaining({
+        user: expect.objectContaining({
+          id: assignedRegistration.body.user.id,
+        }),
+        table: expect.objectContaining({ number: 14, code: "B6" }),
+      }),
+    );
+    expect(
+      await prisma.reservation.findUnique({
+        where: { id: displacedReservation.body.id },
+        select: { isCancelled: true },
+      }),
+    ).toEqual({ isCancelled: true });
+
+    const linkedReplacement = await prisma.reservation.findUnique({
+      where: {
+        replacementForReservationId: replacementOverride.body.id,
+      },
+      select: { id: true, userId: true, tableId: true, isCancelled: true },
+    });
+    expect(linkedReplacement).toEqual(
+      expect.objectContaining({
+        userId: assignedRegistration.body.user.id,
+        isCancelled: false,
+      }),
+    );
+
+    await request(server)
+      .delete(`/admin/reservations/${replacementOverride.body.id}`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ reason: "Replacement scenario completed" })
+      .expect(200);
+    expect(
+      await prisma.reservation.findUnique({
+        where: { id: linkedReplacement!.id },
+        select: { isCancelled: true },
+      }),
+    ).toEqual({ isCancelled: true });
+
     const restrictedReservation = await request(server)
       .post("/admin/reservations")
       .set("Authorization", `Bearer ${adminToken}`)

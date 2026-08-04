@@ -13,6 +13,12 @@ function conflictCount(preview) {
   return (preview?.conflicts?.reservations?.length ?? 0) + (preview?.conflicts?.assignments?.length ?? 0);
 }
 
+function confirmationText(preview) {
+  const base = `${conflictCount(preview)} existing record(s) may be changed or cancelled.`;
+  if (!preview?.replacement) return base;
+  return `${base} ${preview.replacement.displacedUser.fullName} will be moved to desk ${preview.replacement.table.code}.`;
+}
+
 function AdminReservations() {
   const [reservations, setReservations] = useState([]);
   const [users, setUsers] = useState([]);
@@ -71,7 +77,7 @@ function AdminReservations() {
       let confirmed = true;
       if (preview.requiresConfirmation) {
         const result = await Swal.fire({
-          title: "Conflicts detected", text: `${conflictCount(preview)} existing record(s) may be changed or cancelled.`,
+          title: "Conflicts detected", text: confirmationText(preview),
           icon: "warning", showCancelButton: true, confirmButtonText: "Review accepted, continue", confirmButtonColor: "#ff6b00",
         });
         confirmed = result.isConfirmed;
@@ -122,7 +128,7 @@ function AdminReservations() {
           <div className="admin-field full"><label>User</label><select required name="userId" value={form.userId} onChange={updateField}><option value="">Select a user</option>{users.map((user) => <option key={user.id} value={user.id}>{user.fullName} · {user.email}</option>)}</select></div>
           <div className="admin-field"><label>Desk number</label><input required min="1" max="32" type="number" name="tableNumber" value={form.tableNumber} onChange={updateField} /></div>
           <div className="admin-field"><label>Reservation date</label><input required type="date" name="reservationDate" value={form.reservationDate} onChange={updateField} /></div>
-          {modal.mode === "create" && <div className="admin-field"><label>Replacement desk (optional)</label><input min="1" max="32" type="number" name="replacementTableNumber" value={form.replacementTableNumber} onChange={updateField} /></div>}
+          {modal.mode === "create" && <div className="admin-field"><label>Replacement desk (optional)</label><input min="1" max="32" type="number" name="replacementTableNumber" value={form.replacementTableNumber} onChange={updateField} /><small>Used to relocate the current occupant of the target desk.</small></div>}
           <div className="admin-field full"><label>Reason (optional)</label><textarea name="reason" value={form.reason} onChange={updateField} placeholder="Add operational context for the audit trail" /></div>
         </div><FormActions onCancel={() => setModal(null)} submitLabel={modal.mode === "edit" ? "Preview update" : "Preview & create"} busy={busy} /></form>
       </Modal>}
