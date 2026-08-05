@@ -32,7 +32,7 @@ export class TablesController {
     type: AvailableTablesResponseDto,
   })
   findAvailable(@Query() query: AvailableTablesQueryDto) {
-    return this.tablesService.findAvailable(query.date);
+    return this.tablesService.findAvailable(query.officeId, query.date);
   }
 
   @Get("statuses")
@@ -50,7 +50,11 @@ export class TablesController {
     @Query() query: AvailableTablesQueryDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.tablesService.findStatuses(query.date, user.userId);
+    return this.tablesService.findStatuses(
+      query.officeId,
+      query.date,
+      user.userId,
+    );
   }
 
   @Get(":id")

@@ -9,6 +9,8 @@ import { EquipmentsModule } from "./equipments/equipments.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { TableAssignmentsModule } from "./table-assignments/table-assignments.module";
 import { RestrictionsModule } from "./restrictions/restrictions.module";
+import { OfficesModule } from "./offices/offices.module";
+import { EventsModule } from "./events/events.module";
 
 @Module({
   imports: [
@@ -48,6 +50,8 @@ import { RestrictionsModule } from "./restrictions/restrictions.module";
     NotificationsModule,
     TableAssignmentsModule,
     RestrictionsModule,
+    OfficesModule,
+    EventsModule,
   ],
 })
 export class AppModule {}

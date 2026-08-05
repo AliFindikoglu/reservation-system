@@ -11,6 +11,15 @@ export class TableDetailResponseDto {
   @ApiProperty({ example: "A1" })
   code!: string;
 
+  @ApiProperty({
+    example: {
+      id: "00000000-0000-4000-8000-000000000001",
+      name: "Istanbul Office",
+      city: "Istanbul",
+    },
+  })
+  office!: { id: string; name: string; city: string };
+
   @ApiProperty({ type: [EquipmentResponseDto] })
   equipments!: EquipmentResponseDto[];
 }

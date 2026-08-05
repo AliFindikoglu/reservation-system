@@ -8,7 +8,10 @@ import { Prisma } from "@prisma/client";
 import { ReservationsService } from "./reservations.service";
 
 describe("ReservationsService", () => {
+  const officeId = "00000000-0000-4000-8000-000000000001";
+  const office = { id: officeId, name: "Istanbul Office", city: "Istanbul" };
   const prisma = {
+    office: { findFirst: jest.fn() },
     table: { findUnique: jest.fn() },
     reservation: {
       create: jest.fn(),
@@ -21,13 +24,14 @@ describe("ReservationsService", () => {
     tableAssignment: { findFirst: jest.fn() },
   };
   const service = new ReservationsService(prisma as never);
-  const dto = { tableNumber: 1, reservationDate: "2099-01-01" };
+  const dto = { officeId, tableNumber: 1, reservationDate: "2099-01-01" };
   beforeEach(() => {
     process.env.MAX_RESERVATION_DAYS_AHEAD = "999999";
     jest.resetAllMocks();
     prisma.reservation.findFirst.mockResolvedValue(null);
     prisma.userRestriction.findFirst.mockResolvedValue(null);
     prisma.tableAssignment.findFirst.mockResolvedValue(null);
+    prisma.office.findFirst.mockResolvedValue({ id: officeId });
   });
 
   it("giriş yapan kullanıcı adına rezervasyon oluşturur", async () => {
@@ -35,7 +39,7 @@ describe("ReservationsService", () => {
     prisma.reservation.create.mockResolvedValue({
       id: "r1",
       reservationDate: new Date("2099-01-01"),
-      table: { number: 1 },
+      table: { number: 1, office },
     });
     await expect(service.create("user-1", dto)).resolves.toMatchObject({
       id: "r1",
@@ -53,7 +57,7 @@ describe("ReservationsService", () => {
     const successfulReservation = {
       id: "reservation-1",
       reservationDate: new Date("2099-01-01"),
-      table: { number: 1 },
+      table: { number: 1, office },
     };
     const uniqueConstraintError =
       new Prisma.PrismaClientKnownRequestError(
@@ -128,17 +132,18 @@ describe("ReservationsService", () => {
       tableId: 1,
       reservationDate: new Date("2099-01-01"),
       isCancelled: false,
-      table: { number: 1 },
+      table: { number: 1, office },
     });
     prisma.table.findUnique.mockResolvedValue({ id: 2, number: 2 });
     prisma.reservation.update.mockResolvedValue({
       id: "r1",
       reservationDate: new Date("2099-01-02"),
-      table: { number: 2 },
+      table: { number: 2, office },
     });
 
     await expect(
       service.update("r1", "user-1", {
+        officeId,
         tableNumber: 2,
         reservationDate: "2099-01-02",
       }),
@@ -146,6 +151,7 @@ describe("ReservationsService", () => {
       id: "r1",
       reservationDate: "2099-01-02",
       tableNumber: 2,
+      office,
     });
     expect(prisma.reservation.update).toHaveBeenCalledWith({
       where: { id: "r1" },
@@ -153,7 +159,7 @@ describe("ReservationsService", () => {
         tableId: 2,
         reservationDate: new Date("2099-01-02T00:00:00.000Z"),
       },
-      include: { table: true },
+      include: { table: { include: { office: true } } },
     });
   });
   it("güncelleme çakışmasında Update failed mesajı döndürür", async () => {
@@ -163,7 +169,7 @@ describe("ReservationsService", () => {
       tableId: 1,
       reservationDate: new Date("2099-01-01"),
       isCancelled: false,
-      table: { number: 1 },
+      table: { number: 1, office },
     });
     prisma.table.findUnique.mockResolvedValue({ id: 2, number: 2 });
     prisma.reservation.update.mockRejectedValue(
@@ -181,6 +187,7 @@ describe("ReservationsService", () => {
 
     await expect(
       service.update("r1", "user-1", {
+        officeId,
         tableNumber: 2,
         reservationDate: "2099-01-02",
       }),
