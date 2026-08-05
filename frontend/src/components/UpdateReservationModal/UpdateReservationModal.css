@@ -28,13 +28,11 @@
     color: #92400e;
 }
 
-/* ---------------- Date ---------------- */
 
 .react-datepicker-wrapper {
     width: 100%;
 }
 
-/* ---------------- Summary Card ---------------- */
 
 .update-summary {
     display: flex;
@@ -71,7 +69,6 @@
     flex-shrink: 0;
 }
 
-/* ---------------- Seat Card ---------------- */
 
 .seat-selection-card {
     background: #fafafa;
@@ -95,20 +92,16 @@
     font-size: 18px;
 }
 
-/* Legend */
 
 .update-modal .seat-legend {
     margin: 0 auto;
 }
 
-/* Seat Grid (Büzüştüren scale kaldırıldı) */
 
 .update-modal .office-layout {
     width: 100%;
-    /* transform: scale(.90);  <- Basıklığa sebep olan bu satır kaldırıldı */
 }
 
-/* ---------------- Buttons ---------------- */
 
 .cancel-btn {
     padding: 12px 22px;
