@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import {
   IsInt,
+  IsUUID,
   Matches,
   Max,
   Min,
@@ -8,6 +9,11 @@ import {
 } from "class-validator";
 
 export class UpdateReservationDto {
+  @ApiPropertyOptional({ format: "uuid" })
+  @ValidateIf((_, value) => value !== undefined)
+  @IsUUID("4", { message: "Please enter a valid office ID." })
+  officeId?: string;
+
   @ApiPropertyOptional({ example: 12, minimum: 1, maximum: 32 })
   @ValidateIf((_, value) => value !== undefined)
   @IsInt({

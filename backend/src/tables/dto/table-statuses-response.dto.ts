@@ -28,6 +28,9 @@ export class TableStatusDto {
 }
 
 export class TableStatusesResponseDto {
+  @ApiProperty({ format: "uuid" })
+  officeId!: string;
+
   @ApiProperty({ example: "2026-08-01", format: "date" })
   date!: string;
 

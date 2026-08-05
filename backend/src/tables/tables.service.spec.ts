@@ -2,7 +2,9 @@ import { TablesService } from "./tables.service";
 import { TableReservationStatus } from "./dto/table-statuses-response.dto";
 
 describe("TablesService", () => {
+  const officeId = "00000000-0000-4000-8000-000000000001";
   const prisma = {
+    office: { findFirst: jest.fn() },
     reservation: { findMany: jest.fn() },
     tableAssignment: { findMany: jest.fn() },
     table: { findMany: jest.fn(), findUnique: jest.fn() },
@@ -13,6 +15,7 @@ describe("TablesService", () => {
     process.env.MAX_RESERVATION_DAYS_AHEAD = "999999";
     jest.clearAllMocks();
     prisma.tableAssignment.findMany.mockResolvedValue([]);
+    prisma.office.findFirst.mockResolvedValue({ id: officeId });
   });
 
   it("boş masaları hesaplarken yalnız aktif rezervasyonları kullanır", async () => {
@@ -22,7 +25,8 @@ describe("TablesService", () => {
       { id: 2, number: 2, code: "A2", equipments: [] },
     ]);
 
-    await expect(service.findAvailable("2099-01-01")).resolves.toEqual({
+    await expect(service.findAvailable(officeId, "2099-01-01")).resolves.toEqual({
+      officeId,
       date: "2099-01-01",
       tables: [2],
     });
@@ -30,6 +34,7 @@ describe("TablesService", () => {
       where: {
         reservationDate: new Date("2099-01-01T00:00:00.000Z"),
         isCancelled: false,
+        table: { officeId },
       },
       select: { tableId: true, userId: true, createdByAdminId: true },
     });
@@ -42,7 +47,8 @@ describe("TablesService", () => {
       { id: 1, number: 1 },
       { id: 2, number: 2 },
     ]);
-    await expect(service.findAvailable("2099-01-01")).resolves.toEqual({
+    await expect(service.findAvailable(officeId, "2099-01-01")).resolves.toEqual({
+      officeId,
       date: "2099-01-01",
       tables: [1],
     });
@@ -60,8 +66,9 @@ describe("TablesService", () => {
     ]);
 
     await expect(
-      service.findStatuses("2099-01-01", "user-1"),
+      service.findStatuses(officeId, "2099-01-01", "user-1"),
     ).resolves.toEqual({
+      officeId,
       date: "2099-01-01",
       tables: [
         { id: 1, number: 1, code: "A1", status: TableReservationStatus.Mine, equipments: [] },
@@ -73,10 +80,12 @@ describe("TablesService", () => {
       where: {
         reservationDate: new Date("2099-01-01T00:00:00.000Z"),
         isCancelled: false,
+        table: { officeId },
       },
       select: { tableId: true, userId: true, createdByAdminId: true },
     });
     expect(prisma.table.findMany).toHaveBeenCalledWith({
+      where: { officeId },
       orderBy: { number: "asc" },
       include: {
         equipments: {
@@ -101,8 +110,9 @@ describe("TablesService", () => {
     ]);
 
     await expect(
-      service.findStatuses("2099-01-01", "user-1"),
+      service.findStatuses(officeId, "2099-01-01", "user-1"),
     ).resolves.toEqual({
+      officeId,
       date: "2099-01-01",
       tables: [
         {

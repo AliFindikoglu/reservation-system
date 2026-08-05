@@ -42,6 +42,7 @@ import { UpdateTableEquipmentsDto } from "./dto/update-table-equipments.dto";
 import { CreateEquipmentDto } from "./dto/create-equipment.dto";
 import { AvailableTablesQueryDto } from "../tables/dto/available-tables-query.dto";
 import { TablesService } from "../tables/tables.service";
+import { AdminReservationsQueryDto } from "./dto/admin-reservations-query.dto";
 
 @ApiTags("admin")
 @ApiBearerAuth()
@@ -78,8 +79,8 @@ export class AdminController {
   }
 
   @Get("reservations")
-  findReservations(@Query("includeCancelled") includeCancelled?: string) {
-    return this.adminService.findReservations(includeCancelled !== "false");
+  findReservations(@Query() query: AdminReservationsQueryDto) {
+    return this.adminService.findReservations(query);
   }
 
   @Post("reservations/preview")
@@ -208,7 +209,7 @@ export class AdminController {
 
   @Get("tables/statuses")
   findTableStatuses(@Query() query: AvailableTablesQueryDto) {
-    return this.tablesService.findAdminStatuses(query.date);
+    return this.tablesService.findAdminStatuses(query.officeId, query.date);
   }
 
   @Post("equipments")

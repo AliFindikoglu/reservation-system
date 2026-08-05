@@ -29,6 +29,10 @@ import {
 } from "./dto/table-assignment.dto";
 import { UpdateTableEquipmentsDto } from "./dto/update-table-equipments.dto";
 import { CreateEquipmentDto } from "./dto/create-equipment.dto";
+import {
+  AdminReservationsQueryDto,
+  AdminReservationStatusFilter,
+} from "./dto/admin-reservations-query.dto";
 
 type Tx = Prisma.TransactionClient;
 type ReservationWithTableAndUser = Prisma.ReservationGetPayload<{
@@ -208,11 +212,55 @@ export class AdminService {
     });
   }
 
-  findReservations(includeCancelled = true) {
+  findReservations(query: AdminReservationsQueryDto) {
+    const startsOn = query.startsOn
+      ? parseDateOnly(query.startsOn, "start date")
+      : undefined;
+    const endsOn = query.endsOn
+      ? parseDateOnly(query.endsOn, "end date")
+      : undefined;
+    if (startsOn && endsOn && endsOn < startsOn) {
+      throw new BadRequestException(
+        "The end date cannot be before the start date.",
+      );
+    }
+    const status = query.status ?? AdminReservationStatusFilter.All;
     return this.prisma.reservation.findMany({
-      where: includeCancelled ? undefined : { isCancelled: false },
+      where: {
+        ...(status === AdminReservationStatusFilter.Active
+          ? { isCancelled: false }
+          : status === AdminReservationStatusFilter.Cancelled
+            ? { isCancelled: true }
+            : {}),
+        ...(query.userId ? { userId: query.userId } : {}),
+        ...(startsOn || endsOn
+          ? {
+              reservationDate: {
+                ...(startsOn ? { gte: startsOn } : {}),
+                ...(endsOn ? { lte: endsOn } : {}),
+              },
+            }
+          : {}),
+        ...(query.officeId || query.city
+          ? {
+              table: {
+                ...(query.officeId ? { officeId: query.officeId } : {}),
+                ...(query.city
+                  ? { office: { city: { equals: query.city, mode: "insensitive" } } }
+                  : {}),
+              },
+            }
+          : {}),
+      },
       include: {
-        table: { select: { id: true, number: true, code: true } },
+        table: {
+          select: {
+            id: true,
+            number: true,
+            code: true,
+            office: { select: { id: true, name: true, city: true } },
+          },
+        },
         user: { select: { id: true, fullName: true, email: true } },
       },
       orderBy: [{ reservationDate: "desc" }, { createdAt: "desc" }],
@@ -222,7 +270,7 @@ export class AdminService {
   async previewReservation(dto: AdminReservationDto) {
     const date = parseDateOnly(dto.reservationDate, "reservation date");
     const user = await this.assertUserCanReceiveBooking(dto.userId, date);
-    const table = await this.findTable(dto.tableNumber);
+    const table = await this.findTable(dto.officeId, dto.tableNumber);
     const exact = await this.prisma.reservation.findFirst({
       where: {
         userId: user.id,
@@ -281,7 +329,12 @@ export class AdminService {
       requiresConfirmation: conflicts.length > 0,
       target: {
         user: { id: user.id, fullName: user.fullName, email: user.email },
-        table: { id: table.id, number: table.number, code: table.code },
+        table: {
+          id: table.id,
+          officeId: table.officeId,
+          number: table.number,
+          code: table.code,
+        },
         reservationDate: dto.reservationDate,
       },
       conflicts: conflicts.map((conflict) =>
@@ -301,7 +354,7 @@ export class AdminService {
       );
     }
     const date = parseDateOnly(dto.reservationDate, "reservation date");
-    const table = await this.findTable(dto.tableNumber);
+    const table = await this.findTable(dto.officeId, dto.tableNumber);
 
     try {
       return await this.prisma.$transaction(async (tx) => {
@@ -361,6 +414,7 @@ export class AdminService {
             replacementPlan.displacedUser.id,
             date,
             replacementPlan.table.number,
+            table.officeId,
             reservation.id,
           )
         : null;
@@ -456,6 +510,7 @@ export class AdminService {
     }
     if (
       dto.userId === undefined &&
+      dto.officeId === undefined &&
       dto.tableNumber === undefined &&
       dto.reservationDate === undefined
     ) {
@@ -463,8 +518,16 @@ export class AdminService {
         "Please provide a user, reservation date, or table number to update.",
       );
     }
+    if (
+      (dto.officeId === undefined) !== (dto.tableNumber === undefined)
+    ) {
+      throw new BadRequestException(
+        "Please provide both the office ID and table number when changing the table.",
+      );
+    }
     const command: AdminReservationDto = {
       userId: dto.userId ?? existing.userId,
+      officeId: dto.officeId ?? existing.table.officeId,
       tableNumber: dto.tableNumber ?? existing.table.number,
       reservationDate: dto.reservationDate ?? formatDateOnly(existing.reservationDate),
       confirmOverride: dto.confirmOverride,
@@ -472,7 +535,7 @@ export class AdminService {
     };
     const date = parseDateOnly(command.reservationDate, "reservation date");
     await this.assertUserCanReceiveBooking(command.userId, date);
-    const table = await this.findTable(command.tableNumber);
+    const table = await this.findTable(command.officeId, command.tableNumber);
     const [conflicts, userAssignment, tableAssignment] = await Promise.all([
       this.prisma.reservation.findMany({
         where: {
@@ -590,12 +653,13 @@ export class AdminService {
       throw new BadRequestException("Cancelled reservations cannot be modified.");
     }
     const userId = dto.userId ?? existing.userId;
+    const officeId = dto.officeId ?? existing.table.officeId;
     const tableNumber = dto.tableNumber ?? existing.table.number;
     const reservationDate =
       dto.reservationDate ?? formatDateOnly(existing.reservationDate);
     const date = parseDateOnly(reservationDate, "reservation date");
     const user = await this.assertUserCanReceiveBooking(userId, date);
-    const table = await this.findTable(tableNumber);
+    const table = await this.findTable(officeId, tableNumber);
     const [reservations, userAssignment, tableAssignment] = await Promise.all([
       this.prisma.reservation.findMany({
         where: {
@@ -621,7 +685,12 @@ export class AdminService {
         impactedReservations.length > 0 || assignments.length > 0,
       target: {
         user: { id: user.id, fullName: user.fullName, email: user.email },
-        table: { id: table.id, number: table.number, code: table.code },
+        table: {
+          id: table.id,
+          officeId: table.officeId,
+          number: table.number,
+          code: table.code,
+        },
         reservationDate,
       },
       conflicts: {
@@ -712,7 +781,14 @@ export class AdminService {
     return this.prisma.tableAssignment.findMany({
       where: includeRevoked ? undefined : { revokedAt: null },
       include: {
-        table: { select: { id: true, number: true, code: true } },
+        table: {
+          select: {
+            id: true,
+            number: true,
+            code: true,
+            office: { select: { id: true, name: true, city: true } },
+          },
+        },
         user: { select: { id: true, fullName: true, email: true, isActive: true } },
       },
       orderBy: [{ startsOn: "desc" }, { createdAt: "desc" }],
@@ -723,7 +799,7 @@ export class AdminService {
     const { startsOn, endsOn } = this.parseRange(dto.startsOn, dto.endsOn);
     const user = await this.assertUserActive(dto.userId);
     await this.assertNoRestrictionOverlap(user.id, startsOn, endsOn);
-    const table = await this.findTable(dto.tableNumber);
+    const table = await this.findTable(dto.officeId, dto.tableNumber);
     const conflicts = await this.getAssignmentImpact(
       user.id,
       table.id,
@@ -745,7 +821,12 @@ export class AdminService {
         conflicts.assignments.length > 0 || conflicts.reservations.length > 0,
       target: {
         user: { id: user.id, fullName: user.fullName, email: user.email },
-        table: { id: table.id, number: table.number, code: table.code },
+        table: {
+          id: table.id,
+          officeId: table.officeId,
+          number: table.number,
+          code: table.code,
+        },
         startsOn: dto.startsOn,
         endsOn: dto.endsOn ?? null,
       },
@@ -768,7 +849,7 @@ export class AdminService {
       );
     }
     const { startsOn, endsOn } = this.parseRange(dto.startsOn, dto.endsOn);
-    const table = await this.findTable(dto.tableNumber);
+    const table = await this.findTable(dto.officeId, dto.tableNumber);
     try {
       return await this.prisma.$transaction(async (tx) => {
       const impact = await this.getAssignmentImpact(
@@ -1310,6 +1391,9 @@ export class AdminService {
       include: { equipments: { include: { equipment: true } } },
     });
     if (!table) throw new NotFoundException("Table not found.");
+    if (table.officeId !== dto.officeId) {
+      throw new NotFoundException("Table not found in the selected office.");
+    }
     const equipments = await this.prisma.equipment.findMany({
       where: { id: { in: dto.equipmentIds }, isActive: true },
     });
@@ -1346,6 +1430,7 @@ export class AdminService {
           id: true,
           number: true,
           code: true,
+          office: { select: { id: true, name: true, city: true } },
           equipments: {
             select: { equipment: { select: { id: true, code: true, name: true } } },
             orderBy: { equipment: { name: "asc" } },
@@ -1358,6 +1443,7 @@ export class AdminService {
         id: updated.id,
         number: updated.number,
         code: updated.code,
+        office: updated.office,
         equipments: updated.equipments.map((item) => item.equipment),
       },
     }));
@@ -1449,8 +1535,15 @@ export class AdminService {
     }
   }
 
-  private async findTable(number: number) {
-    const table = await this.prisma.table.findUnique({ where: { number } });
+  private async findTable(officeId: string, number: number) {
+    const office = await this.prisma.office.findFirst({
+      where: { id: officeId, isActive: true },
+      select: { id: true },
+    });
+    if (!office) throw new NotFoundException("Office not found.");
+    const table = await this.prisma.table.findUnique({
+      where: { officeId_number: { officeId, number } },
+    });
     if (!table) throw new NotFoundException("Table not found.");
     return table;
   }
@@ -1575,7 +1668,12 @@ export class AdminService {
     database: PrismaService | Tx,
     input: {
       replacementTableNumber?: number;
-      targetTable: { id: number; number: number; code: string };
+      targetTable: {
+        id: number;
+        officeId: string;
+        number: number;
+        code: string;
+      };
       selectedUserId: string;
       date: Date;
       tableReservation: ReservationWithTableAndUser | null;
@@ -1606,7 +1704,12 @@ export class AdminService {
     }
 
     const replacementTable = await database.table.findUnique({
-      where: { number: input.replacementTableNumber },
+      where: {
+        officeId_number: {
+          officeId: input.targetTable.officeId,
+          number: input.replacementTableNumber,
+        },
+      },
     });
     if (!replacementTable) {
       throw new NotFoundException("Replacement table not found.");
@@ -1690,6 +1793,7 @@ export class AdminService {
     userId: string,
     date: Date,
     tableNumber: number,
+    officeId: string,
     replacementForReservationId: string,
   ) {
     const user = await tx.user.findUnique({ where: { id: userId } });
@@ -1709,7 +1813,9 @@ export class AdminService {
         "The displaced user has a restriction for the selected date.",
       );
     }
-    const table = await tx.table.findUnique({ where: { number: tableNumber } });
+    const table = await tx.table.findUnique({
+      where: { officeId_number: { officeId, number: tableNumber } },
+    });
     if (!table) throw new NotFoundException("Replacement table not found.");
     const [reservation, assignment] = await Promise.all([
       tx.reservation.findFirst({
@@ -1790,7 +1896,7 @@ export class AdminService {
   private reservationResponse(reservation: {
     id: string;
     reservationDate: Date;
-    table: { number: number; code: string };
+    table: { officeId: string; number: number; code: string };
     user: { id: string; fullName: string; email: string };
   }) {
     return {
@@ -1806,7 +1912,7 @@ export class AdminService {
     id: string;
     startsOn: Date;
     endsOn: Date | null;
-    table: { number: number; code: string };
+    table: { officeId: string; number: number; code: string };
     user: { id: string; fullName: string; email: string };
   }) {
     return {
@@ -1823,7 +1929,7 @@ export class AdminService {
     userId: string;
     reservationDate: Date;
     createdByAdminId: string | null;
-    table: { id: number; number: number; code: string };
+    table: { id: number; officeId: string; number: number; code: string };
     user: { id: string; fullName: string; email: string };
   }) {
     return {
@@ -1833,6 +1939,7 @@ export class AdminService {
       source: reservation.createdByAdminId ? "admin" : "user",
       table: {
         id: reservation.table.id,
+        officeId: reservation.table.officeId,
         number: reservation.table.number,
         code: reservation.table.code,
       },
@@ -1849,7 +1956,7 @@ export class AdminService {
     userId: string;
     startsOn: Date;
     endsOn: Date | null;
-    table: { id: number; number: number; code: string };
+    table: { id: number; officeId: string; number: number; code: string };
     user: { id: string; fullName: string; email: string };
   }) {
     return {
@@ -1859,6 +1966,7 @@ export class AdminService {
       endsOn: assignment.endsOn ? formatDateOnly(assignment.endsOn) : null,
       table: {
         id: assignment.table.id,
+        officeId: assignment.table.officeId,
         number: assignment.table.number,
         code: assignment.table.code,
       },

@@ -9,4 +9,13 @@ export class ReservationResponseDto {
 
   @ApiProperty({ example: 12, minimum: 1, maximum: 32 })
   tableNumber!: number;
+
+  @ApiProperty({
+    example: {
+      id: "00000000-0000-4000-8000-000000000001",
+      name: "Istanbul Office",
+      city: "Istanbul",
+    },
+  })
+  office!: { id: string; name: string; city: string };
 }

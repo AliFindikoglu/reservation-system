@@ -6,6 +6,10 @@ export class CreateTableAssignmentDto {
   @IsUUID("4", { message: "Please enter a valid user ID." })
   userId!: string;
 
+  @ApiProperty({ format: "uuid" })
+  @IsUUID("4", { message: "Please enter a valid office ID." })
+  officeId!: string;
+
   @ApiProperty({ minimum: 1, maximum: 32 })
   @IsInt({ message: "Please enter a valid table number between 1 and 32." })
   @Min(1, { message: "Please enter a valid table number between 1 and 32." })

@@ -11,6 +11,12 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let jwtService: JwtService;
+  const officeId = "00000000-0000-4000-8000-000000000001";
+  const officeResponse = {
+    id: officeId,
+    name: "Istanbul Office",
+    city: "Istanbul",
+  };
 
   const firstEmail = "e2e.first@eteration.com";
   const secondEmail = "e2e.second@eteration.com";
@@ -44,8 +50,18 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
     prisma = app.get(PrismaService);
     jwtService = app.get(JwtService);
     await cleanupTestUsers();
+    await prisma.office.upsert({
+      where: { id: officeId },
+      create: {
+        id: officeId,
+        name: "Istanbul Office",
+        city: "Istanbul",
+      },
+      update: { isActive: true },
+    });
     await prisma.table.createMany({
       data: Array.from({ length: 32 }, (_, index) => ({
+        officeId,
         number: index + 1,
         code: `${String.fromCharCode(65 + Math.floor(index / 8))}${(index % 8) + 1}`,
       })),
@@ -344,12 +360,12 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
 
     await request(server)
       .post("/reservations")
-      .send({ tableNumber: 1, reservationDate })
+      .send({ officeId, tableNumber: 1, reservationDate })
       .expect(401);
 
     await request(server)
       .get("/tables/statuses")
-      .query({ date: reservationDate })
+      .query({ officeId, date: reservationDate })
       .expect(401, {
         statusCode: 401,
         message: "Please sign in to perform this action.",
@@ -357,9 +373,10 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
 
     const availableBeforeCreate = await request(server)
       .get("/tables/available")
-      .query({ date: reservationDate })
+      .query({ officeId, date: reservationDate })
       .expect(200);
     expect(availableBeforeCreate.body).toMatchObject({
+      officeId,
       date: reservationDate,
       tables: expect.arrayContaining([1]),
     });
@@ -367,7 +384,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
     const statusesBeforeCreate = await request(server)
       .get("/tables/statuses")
       .set("Authorization", `Bearer ${firstToken}`)
-      .query({ date: reservationDate })
+      .query({ officeId, date: reservationDate })
       .expect(200);
     expect(statusesBeforeCreate.body.tables).toHaveLength(32);
     expect(statusesBeforeCreate.body.tables).toContainEqual(
@@ -377,24 +394,25 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
     const created = await request(server)
       .post("/reservations")
       .set("Authorization", `Bearer ${firstToken}`)
-      .send({ tableNumber: 1, reservationDate })
+      .send({ officeId, tableNumber: 1, reservationDate })
       .expect(201);
     expect(created.body).toEqual({
       id: expect.any(String),
       reservationDate,
       tableNumber: 1,
+      office: officeResponse,
     });
 
     const availableAfterCreate = await request(server)
       .get("/tables/available")
-      .query({ date: reservationDate })
+      .query({ officeId, date: reservationDate })
       .expect(200);
     expect(availableAfterCreate.body.tables).not.toContain(1);
 
     const firstUserStatuses = await request(server)
       .get("/tables/statuses")
       .set("Authorization", `Bearer ${firstToken}`)
-      .query({ date: reservationDate })
+      .query({ officeId, date: reservationDate })
       .expect(200);
     expect(firstUserStatuses.body.tables).toContainEqual(
       expect.objectContaining({ number: 1, status: "mine" }),
@@ -403,7 +421,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
     const secondUserStatuses = await request(server)
       .get("/tables/statuses")
       .set("Authorization", `Bearer ${secondToken}`)
-      .query({ date: reservationDate })
+      .query({ officeId, date: reservationDate })
       .expect(200);
     expect(secondUserStatuses.body.tables).toContainEqual(
       expect.objectContaining({ number: 1, status: "reserved" }),
@@ -412,7 +430,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
     await request(server)
       .post("/reservations")
       .set("Authorization", `Bearer ${secondToken}`)
-      .send({ tableNumber: 1, reservationDate })
+      .send({ officeId, tableNumber: 1, reservationDate })
       .expect(409, {
         statusCode: 409,
         message: "The selected table is already reserved for this date.",
@@ -421,7 +439,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
     await request(server)
       .post("/reservations")
       .set("Authorization", `Bearer ${firstToken}`)
-      .send({ tableNumber: 2, reservationDate })
+      .send({ officeId, tableNumber: 2, reservationDate })
       .expect(409, {
         statusCode: 409,
         message: "You can create only one reservation per day.",
@@ -430,35 +448,36 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
     await request(server)
       .post("/reservations")
       .set("Authorization", `Bearer ${secondToken}`)
-      .send({ tableNumber: 2, reservationDate: editDate })
+      .send({ officeId, tableNumber: 2, reservationDate: editDate })
       .expect(201);
 
     await request(server)
       .patch(`/reservations/${created.body.id}`)
       .set("Authorization", `Bearer ${firstToken}`)
-      .send({ tableNumber: 3, reservationDate: editDate })
+      .send({ officeId, tableNumber: 3, reservationDate: editDate })
       .expect(200, {
         id: created.body.id,
         reservationDate: editDate,
         tableNumber: 3,
+        office: officeResponse,
       });
 
     const availableAfterEditOnOldDate = await request(server)
       .get("/tables/available")
-      .query({ date: reservationDate })
+      .query({ officeId, date: reservationDate })
       .expect(200);
     expect(availableAfterEditOnOldDate.body.tables).toContain(1);
 
     const availableAfterEditOnNewDate = await request(server)
       .get("/tables/available")
-      .query({ date: editDate })
+      .query({ officeId, date: editDate })
       .expect(200);
     expect(availableAfterEditOnNewDate.body.tables).not.toContain(3);
 
     await request(server)
       .patch(`/reservations/${created.body.id}`)
       .set("Authorization", `Bearer ${firstToken}`)
-      .send({ tableNumber: 2, reservationDate: editDate })
+      .send({ officeId, tableNumber: 2, reservationDate: editDate })
       .expect(409, {
         statusCode: 409,
         message: "Update failed.",
@@ -472,18 +491,19 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       id: created.body.id,
       reservationDate: editDate,
       tableNumber: 3,
+      office: officeResponse,
     });
 
     const secondReservationForFirstUser = await request(server)
       .post("/reservations")
       .set("Authorization", `Bearer ${firstToken}`)
-      .send({ tableNumber: 4, reservationDate })
+      .send({ officeId, tableNumber: 4, reservationDate })
       .expect(201);
 
     await request(server)
       .patch(`/reservations/${secondReservationForFirstUser.body.id}`)
       .set("Authorization", `Bearer ${firstToken}`)
-      .send({ tableNumber: 4, reservationDate: editDate })
+      .send({ officeId, tableNumber: 4, reservationDate: editDate })
       .expect(409, {
         statusCode: 409,
         message: "Update failed.",
@@ -549,14 +569,14 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
 
     const availableAfterDelete = await request(server)
       .get("/tables/available")
-      .query({ date: editDate })
+      .query({ officeId, date: editDate })
       .expect(200);
     expect(availableAfterDelete.body.tables).toContain(3);
 
     const statusesAfterDelete = await request(server)
       .get("/tables/statuses")
       .set("Authorization", `Bearer ${firstToken}`)
-      .query({ date: editDate })
+      .query({ officeId, date: editDate })
       .expect(200);
     expect(statusesAfterDelete.body.tables).toContainEqual(
       expect.objectContaining({ number: 3, status: "available" }),
@@ -565,7 +585,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
     await request(server)
       .post("/reservations")
       .set("Authorization", `Bearer ${firstToken}`)
-      .send({ tableNumber: 3, reservationDate: editDate })
+      .send({ officeId, tableNumber: 3, reservationDate: editDate })
       .expect(201);
 
     await request(server)

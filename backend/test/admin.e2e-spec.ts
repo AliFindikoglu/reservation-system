@@ -10,6 +10,7 @@ import { PrismaService } from "../src/prisma/prisma.service";
 describe("Admin reservation domain (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
+  const officeId = "00000000-0000-4000-8000-000000000001";
   const password = "GucluParola1!";
   const emails = [
     "admin.e2e@eteration.com",
@@ -134,12 +135,14 @@ describe("Admin reservation domain (e2e)", () => {
     const selectedEquipmentIds = equipmentList.body.equipments
       .slice(0, 2)
       .map((equipment: { id: string }) => equipment.id);
-    const table = await prisma.table.findUniqueOrThrow({ where: { number: 10 } });
+    const table = await prisma.table.findUniqueOrThrow({
+      where: { officeId_number: { officeId, number: 10 } },
+    });
 
     await request(server)
       .put(`/admin/tables/${table.id}/equipments`)
       .set("Authorization", `Bearer ${adminToken}`)
-      .send({ equipmentIds: monitorIds })
+      .send({ officeId, equipmentIds: monitorIds })
       .expect(400, {
         statusCode: 400,
         message: "Please select either Monitor or Dual Monitor, not both.",
@@ -148,7 +151,7 @@ describe("Admin reservation domain (e2e)", () => {
     await request(server)
       .put(`/admin/tables/${table.id}/equipments`)
       .set("Authorization", `Bearer ${adminToken}`)
-      .send({ equipmentIds: selectedEquipmentIds })
+      .send({ officeId, equipmentIds: selectedEquipmentIds })
       .expect(200)
       .expect((response) => {
         expect(response.body.table.equipments).toHaveLength(2);
@@ -158,6 +161,7 @@ describe("Admin reservation domain (e2e)", () => {
     const endsOn = dateFromNow(5);
     const assignmentCommand = {
       userId: assignedRegistration.body.user.id,
+      officeId,
       tableNumber: 10,
       startsOn,
       endsOn,
@@ -189,7 +193,7 @@ describe("Admin reservation domain (e2e)", () => {
     await request(server)
       .post("/reservations")
       .set("Authorization", `Bearer ${assignedToken}`)
-      .send({ tableNumber: 11, reservationDate: startsOn })
+      .send({ officeId, tableNumber: 11, reservationDate: startsOn })
       .expect(409, {
         statusCode: 409,
         message: "You already have an assigned table for this date.",
@@ -198,7 +202,7 @@ describe("Admin reservation domain (e2e)", () => {
     const assignedStatuses = await request(server)
       .get("/tables/statuses")
       .set("Authorization", `Bearer ${assignedToken}`)
-      .query({ date: startsOn })
+      .query({ officeId, date: startsOn })
       .expect(200);
     expect(assignedStatuses.body.tables).toContainEqual(
       expect.objectContaining({
@@ -211,6 +215,7 @@ describe("Admin reservation domain (e2e)", () => {
 
     const overrideCommand = {
       userId: otherRegistration.body.user.id,
+      officeId,
       tableNumber: 10,
       reservationDate: startsOn,
       confirmOverride: true,
@@ -224,7 +229,7 @@ describe("Admin reservation domain (e2e)", () => {
     const adminStatuses = await request(server)
       .get("/admin/tables/statuses")
       .set("Authorization", `Bearer ${adminToken}`)
-      .query({ date: startsOn })
+      .query({ officeId, date: startsOn })
       .expect(200);
     expect(adminStatuses.body.tables).toContainEqual(
       expect.objectContaining({ number: 10, status: "admin_reserved" }),
@@ -233,7 +238,7 @@ describe("Admin reservation domain (e2e)", () => {
     const overriddenStatuses = await request(server)
       .get("/tables/statuses")
       .set("Authorization", `Bearer ${assignedToken}`)
-      .query({ date: startsOn })
+      .query({ officeId, date: startsOn })
       .expect(200);
     expect(overriddenStatuses.body.tables).toContainEqual(
       expect.objectContaining({ number: 10, status: "reserved" }),
@@ -247,7 +252,7 @@ describe("Admin reservation domain (e2e)", () => {
     const resumedStatuses = await request(server)
       .get("/tables/statuses")
       .set("Authorization", `Bearer ${assignedToken}`)
-      .query({ date: startsOn })
+      .query({ officeId, date: startsOn })
       .expect(200);
     expect(resumedStatuses.body.tables).toContainEqual(
       expect.objectContaining({ number: 10, status: "mine" }),
@@ -257,7 +262,7 @@ describe("Admin reservation domain (e2e)", () => {
     const displacedReservation = await request(server)
       .post("/reservations")
       .set("Authorization", `Bearer ${assignedToken}`)
-      .send({ tableNumber: 13, reservationDate: replacementDate })
+      .send({ officeId, tableNumber: 13, reservationDate: replacementDate })
       .expect(201);
 
     await request(server)
@@ -265,6 +270,7 @@ describe("Admin reservation domain (e2e)", () => {
       .set("Authorization", `Bearer ${adminToken}`)
       .send({
         userId: otherRegistration.body.user.id,
+        officeId,
         tableNumber: 15,
         reservationDate: replacementDate,
         replacementTableNumber: 16,
@@ -280,6 +286,7 @@ describe("Admin reservation domain (e2e)", () => {
       .set("Authorization", `Bearer ${adminToken}`)
       .send({
         userId: otherRegistration.body.user.id,
+        officeId,
         tableNumber: 13,
         reservationDate: replacementDate,
         replacementTableNumber: 13,
@@ -294,6 +301,7 @@ describe("Admin reservation domain (e2e)", () => {
       .set("Authorization", `Bearer ${adminToken}`)
       .send({
         userId: otherRegistration.body.user.id,
+        officeId,
         tableNumber: 13,
         reservationDate: replacementDate,
         replacementTableNumber: 14,
@@ -317,6 +325,7 @@ describe("Admin reservation domain (e2e)", () => {
       .set("Authorization", `Bearer ${adminToken}`)
       .send({
         userId: otherRegistration.body.user.id,
+        officeId,
         tableNumber: 13,
         reservationDate: replacementDate,
         replacementTableNumber: 14,
@@ -368,6 +377,7 @@ describe("Admin reservation domain (e2e)", () => {
       .set("Authorization", `Bearer ${adminToken}`)
       .send({
         userId: otherRegistration.body.user.id,
+        officeId,
         tableNumber: 12,
         reservationDate: startsOn,
       })
@@ -395,6 +405,7 @@ describe("Admin reservation domain (e2e)", () => {
       .set("Authorization", `Bearer ${adminToken}`)
       .send({
         userId: otherRegistration.body.user.id,
+        officeId,
         tableNumber: 12,
         reservationDate: startsOn,
       })

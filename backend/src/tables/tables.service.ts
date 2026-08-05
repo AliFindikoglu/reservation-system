@@ -7,16 +7,18 @@ import { TableReservationStatus } from "./dto/table-statuses-response.dto";
 export class TablesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAvailable(date: string) {
+  async findAvailable(officeId: string, date: string) {
+    await this.assertOfficeActive(officeId);
     const reservationDate = parseReservationDate(date);
     const [reservedTables, assignedTables] = await Promise.all([
       this.prisma.reservation.findMany({
-        where: { reservationDate, isCancelled: false },
+        where: { reservationDate, isCancelled: false, table: { officeId } },
         select: { tableId: true, userId: true, createdByAdminId: true },
       }),
       this.prisma.tableAssignment.findMany({
         where: {
           revokedAt: null,
+          table: { officeId },
           startsOn: { lte: reservationDate },
           OR: [{ endsOn: null }, { endsOn: { gte: reservationDate } }],
         },
@@ -35,10 +37,12 @@ export class TablesService {
         .map((item) => item.tableId),
     ]);
     const tables = await this.prisma.table.findMany({
+      where: { officeId },
       orderBy: { number: "asc" },
     });
 
     return {
+      officeId,
       date,
       tables: tables
         .filter((table) => !reservedIds.has(table.id))
@@ -46,22 +50,25 @@ export class TablesService {
     };
   }
 
-  async findStatuses(date: string, userId: string) {
+  async findStatuses(officeId: string, date: string, userId: string) {
+    await this.assertOfficeActive(officeId);
     const reservationDate = parseReservationDate(date);
     const [reservations, assignments, tables] = await Promise.all([
       this.prisma.reservation.findMany({
-        where: { reservationDate, isCancelled: false },
+        where: { reservationDate, isCancelled: false, table: { officeId } },
         select: { tableId: true, userId: true, createdByAdminId: true },
       }),
       this.prisma.tableAssignment.findMany({
         where: {
           revokedAt: null,
+          table: { officeId },
           startsOn: { lte: reservationDate },
           OR: [{ endsOn: null }, { endsOn: { gte: reservationDate } }],
         },
         select: { tableId: true, userId: true },
       }),
       this.prisma.table.findMany({
+        where: { officeId },
         orderBy: { number: "asc" },
         include: {
           equipments: {
@@ -92,6 +99,7 @@ export class TablesService {
     );
 
     return {
+      officeId,
       date,
       tables: tables.map((table) => {
         const reservation = reservationsByTableId.get(table.id);
@@ -129,6 +137,7 @@ export class TablesService {
     const table = await this.prisma.table.findUnique({
       where: { id },
       include: {
+        office: { select: { id: true, name: true, city: true } },
         equipments: {
           where: { equipment: { isActive: true } },
           include: { equipment: true },
@@ -141,6 +150,7 @@ export class TablesService {
       id: table.id,
       number: table.number,
       code: table.code,
+      office: table.office,
       equipments: table.equipments.map((item) => ({
         id: item.equipment.id,
         code: item.equipment.code,
@@ -149,22 +159,25 @@ export class TablesService {
     };
   }
 
-  async findAdminStatuses(date: string) {
+  async findAdminStatuses(officeId: string, date: string) {
+    await this.assertOfficeActive(officeId);
     const reservationDate = parseDateOnly(date, "date");
     const [reservations, assignments, tables] = await Promise.all([
       this.prisma.reservation.findMany({
-        where: { reservationDate, isCancelled: false },
+        where: { reservationDate, isCancelled: false, table: { officeId } },
         include: { user: { select: { id: true, fullName: true, email: true } } },
       }),
       this.prisma.tableAssignment.findMany({
         where: {
           revokedAt: null,
+          table: { officeId },
           startsOn: { lte: reservationDate },
           OR: [{ endsOn: null }, { endsOn: { gte: reservationDate } }],
         },
         include: { user: { select: { id: true, fullName: true, email: true } } },
       }),
       this.prisma.table.findMany({
+        where: { officeId },
         orderBy: { number: "asc" },
         include: {
           equipments: {
@@ -190,6 +203,7 @@ export class TablesService {
         .map((item) => [item.tableId, item]),
     );
     return {
+      officeId,
       date,
       tables: tables.map((table) => {
         const reservation = reservationMap.get(table.id);
@@ -225,5 +239,13 @@ export class TablesService {
         };
       }),
     };
+  }
+
+  private async assertOfficeActive(officeId: string) {
+    const office = await this.prisma.office.findFirst({
+      where: { id: officeId, isActive: true },
+      select: { id: true },
+    });
+    if (!office) throw new NotFoundException("Office not found.");
   }
 }

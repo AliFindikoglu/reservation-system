@@ -2,12 +2,43 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+const ISTANBUL_OFFICE_ID = '00000000-0000-4000-8000-000000000001';
+const IZMIR_OFFICE_ID = '00000000-0000-4000-8000-000000000002';
+
+function tableData(officeId: string, count: number) {
+  return Array.from({ length: count }, (_, index) => ({
+    officeId,
+    number: index + 1,
+    code: `${String.fromCharCode(65 + Math.floor(index / 8))}${(index % 8) + 1}`,
+  }));
+}
+
 async function main() {
+  await prisma.office.upsert({
+    where: { id: ISTANBUL_OFFICE_ID },
+    create: {
+      id: ISTANBUL_OFFICE_ID,
+      name: 'Istanbul Office',
+      city: 'Istanbul',
+    },
+    update: { name: 'Istanbul Office', city: 'Istanbul', isActive: true },
+  });
+
+  await prisma.office.upsert({
+    where: { id: IZMIR_OFFICE_ID },
+    create: {
+      id: IZMIR_OFFICE_ID,
+      name: 'Izmir Office',
+      city: 'Izmir',
+    },
+    update: { name: 'Izmir Office', city: 'Izmir', isActive: true },
+  });
+
   await prisma.table.createMany({
-    data: Array.from({ length: 32 }, (_, index) => ({
-      number: index + 1,
-      code: `${String.fromCharCode(65 + Math.floor(index / 8))}${(index % 8) + 1}`,
-    })),
+    data: [
+      ...tableData(ISTANBUL_OFFICE_ID, 32),
+      ...tableData(IZMIR_OFFICE_ID, 16),
+    ],
     skipDuplicates: true,
   });
 

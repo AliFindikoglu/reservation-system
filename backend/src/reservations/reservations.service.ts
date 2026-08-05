@@ -21,7 +21,7 @@ export class ReservationsService {
 
   async create(userId: string, dto: CreateReservationDto) {
     const reservationDate = parseReservationDate(dto.reservationDate);
-    const table = await this.findTable(dto.tableNumber);
+    const table = await this.findTable(dto.officeId, dto.tableNumber);
     await this.assertReservationAllowed(userId, table.id, reservationDate);
     const exact = await this.prisma.reservation.findFirst({
       where: {
@@ -37,7 +37,7 @@ export class ReservationsService {
     try {
       const reservation = await this.prisma.reservation.create({
         data: { userId, tableId: table.id, reservationDate },
-        include: { table: true },
+        include: { table: { include: { office: true } } },
       });
       return this.toResponse(reservation);
     } catch (error) {
@@ -49,7 +49,7 @@ export class ReservationsService {
   async findMyReservations(userId: string) {
     const reservations = await this.prisma.reservation.findMany({
       where: { userId, isCancelled: false },
-      include: { table: true },
+      include: { table: { include: { office: true } } },
       orderBy: { reservationDate: "asc" },
     });
     return reservations.map((reservation) => this.toResponse(reservation));
@@ -63,17 +63,28 @@ export class ReservationsService {
       );
     }
     assertReservationCanBeUpdated(existing.reservationDate);
-    if (dto.reservationDate === undefined && dto.tableNumber === undefined) {
+    if (
+      dto.reservationDate === undefined &&
+      dto.tableNumber === undefined &&
+      dto.officeId === undefined
+    ) {
       throw new BadRequestException(
         "Please provide a reservation date or table number to update.",
+      );
+    }
+    if (
+      (dto.officeId === undefined) !== (dto.tableNumber === undefined)
+    ) {
+      throw new BadRequestException(
+        "Please provide both the office ID and table number when changing the table.",
       );
     }
 
     const reservationDate = dto.reservationDate
       ? parseReservationDate(dto.reservationDate)
       : existing.reservationDate;
-    const tableId = dto.tableNumber
-      ? (await this.findTable(dto.tableNumber)).id
+    const tableId = dto.tableNumber && dto.officeId
+      ? (await this.findTable(dto.officeId, dto.tableNumber)).id
       : existing.tableId;
     await this.assertReservationAllowed(
       userId,
@@ -84,7 +95,7 @@ export class ReservationsService {
       const reservation = await this.prisma.reservation.update({
         where: { id },
         data: { tableId, reservationDate },
-        include: { table: true },
+        include: { table: { include: { office: true } } },
       });
       return this.toResponse(reservation);
     } catch (error) {
@@ -114,15 +125,22 @@ export class ReservationsService {
     });
   }
 
-  private async findTable(number: number) {
-    const table = await this.prisma.table.findUnique({ where: { number } });
+  private async findTable(officeId: string, number: number) {
+    const office = await this.prisma.office.findFirst({
+      where: { id: officeId, isActive: true },
+      select: { id: true },
+    });
+    if (!office) throw new NotFoundException("Office not found.");
+    const table = await this.prisma.table.findUnique({
+      where: { officeId_number: { officeId, number } },
+    });
     if (!table) throw new NotFoundException("Table not found.");
     return table;
   }
   private async findOwned(id: string, userId: string) {
     const reservation = await this.prisma.reservation.findUnique({
       where: { id },
-      include: { table: true },
+      include: { table: { include: { office: true } } },
     });
     if (!reservation) throw new NotFoundException("Reservation not found.");
     if (reservation.userId !== userId)
@@ -231,12 +249,20 @@ export class ReservationsService {
   private toResponse(reservation: {
     id: string;
     reservationDate: Date;
-    table: { number: number };
+    table: {
+      number: number;
+      office: { id: string; name: string; city: string };
+    };
   }) {
     return {
       id: reservation.id,
       reservationDate: reservation.reservationDate.toISOString().slice(0, 10),
       tableNumber: reservation.table.number,
+      office: {
+        id: reservation.table.office.id,
+        name: reservation.table.office.name,
+        city: reservation.table.office.city,
+      },
     };
   }
 }
