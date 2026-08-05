@@ -78,7 +78,10 @@ function UpdateReservationModal({
 
 return (
   <div className="modal-overlay" onClick={onClose}>
-    <div className="update-modal">
+    <div 
+    className="update-modal"
+    onClick={(e) => e.stopPropagation()}
+    >
 
       <h2>Update Reservation</h2>
 

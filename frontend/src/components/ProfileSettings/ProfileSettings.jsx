@@ -274,7 +274,7 @@ function ProfileSettings({ user, setUser }) {
 
 
                 <button
-                    className="save-btn"
+                    className="profile-save-btn"
                     onClick={handleSaveChanges}
                     disabled={!hasChanges}
                 >

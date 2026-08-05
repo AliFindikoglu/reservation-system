@@ -36,11 +36,11 @@ function SeatGrid({
         isSelected={selectedSeat === seatNumber}
         status={adminMode ? (table?.status ?? "available").replaceAll("_", "-") : undefined}
         disabled={interactionDisabled || (!adminMode && isReserved && !isMine)}
-        onClick={() => {
-          if (!interactionDisabled && (adminMode || !isReserved || isMine)) {
-            onSeatClick(seatNumber);
-          }
-        }}
+       onClick={() => {
+  if (!interactionDisabled && (adminMode || !isReserved || isMine)) {
+    onSeatClick(seatNumber);
+  }
+}}
       />
     );
   };

@@ -103,25 +103,31 @@ function Home() {
     }, 0);
 
     return () => clearTimeout(timeoutId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, currentUser]);
 
   function handleSeatClick(seatNumber) {
-    if (!currentUser) {
-      setIsLoginOpen(true);
-      return;
-    }
-    if (activeRestriction) {
-      toast.error(
-        activeRestriction.reason
-          ? `You cannot make reservations during this period. Reason: ${activeRestriction.reason}`
-          : "You cannot make reservations during this restricted period."
-      );
-      return;
-    }
-    setSelectedSeat(selectedSeat === seatNumber ? null : seatNumber);
+  if (!currentUser) {
+    setIsLoginOpen(true);
+    return;
   }
 
+  if (activeRestriction) {
+    toast.error(
+      activeRestriction.reason
+        ? `You cannot make reservations during this period. Reason: ${activeRestriction.reason}`
+        : "You cannot make reservations during this restricted period."
+    );
+    return;
+  }
+
+  const table = tableStatuses.find((t) => t.number === seatNumber);
+
+  if (table?.status === "mine") {
+    return;
+  }
+
+  setSelectedSeat((prev) => (prev === seatNumber ? null : seatNumber));
+}
   async function handleReserve() {
     if (!selectedSeat) {
       toast.error("Please select a desk first.");
