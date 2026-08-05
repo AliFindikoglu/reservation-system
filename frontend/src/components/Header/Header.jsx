@@ -48,7 +48,7 @@ function Header({
             <NotificationBell />
 
            
-            <span className="admin-avatar">
+            <span className="avatar">
               {currentUser?.fullName?.slice(0, 1)?.toUpperCase() ?? "U"}
             </span>
 

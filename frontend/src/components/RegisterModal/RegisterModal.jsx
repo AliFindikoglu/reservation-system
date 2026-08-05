@@ -1,63 +1,42 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import "./RegisterModal.css";
+import PasswordInput from "../../components/PasswordInput/PasswordInput";
+
+import {
+  validateName,
+  validateEmail,
+  validatePhone,
+  validatePassword,
+  formatName,
+} from "../../utils/validation";
+
 function RegisterModal({
   isOpen,
   onRegister,
   onClose,
   onOpenLogin,
 }) {
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
 
   const [errors, setErrors] = useState({
-    fullName: "",
+    firstName: "",
+    lastName: "",
     email: "",
     phone: "",
     password: "",
   });
 
-  function validateName(value) {
-    if (!value.trim()) return "Full name is required.";
-    if (value.trim().length < 3)
-      return "Full name must be at least 3 characters.";
-    return "";
-  }
-
-  function validateEmail(value) {
-    if (!value) return "Email is required.";
-    if (!value.endsWith("@eteration.com"))
-      return "Please use your work email.";
-    return "";
-  }
-
-  function validatePhone(value) {
-    const phoneRegex = /^(\+90|0)?5\d{9}$/;
-
-    if (!value) return "Phone number is required.";
-
-    if (!phoneRegex.test(value.replace(/\s/g, "")))
-      return "Please enter a valid Turkish phone number.";
-
-    return "";
-  }
-
-  function validatePassword(value) {
-    if (!value) return "Password is required.";
-
-    if (value.length < 8)
-      return "Password must be at least 8 characters.";
-
-    return "";
-  }
-
   if (!isOpen) return null;
 
   async function handleRegister() {
     const validationErrors = {
-      fullName: validateName(fullName),
+      firstName: validateName(firstName),
+      lastName: validateName(lastName),
       email: validateEmail(email),
       phone: validatePhone(phone),
       password: validatePassword(password),
@@ -71,7 +50,8 @@ function RegisterModal({
 
     try {
       await onRegister({
-        fullName,
+
+        fullName: `${firstName.trim()} ${lastName.trim()}`,
         email,
         phone,
         password,
@@ -97,29 +77,55 @@ function RegisterModal({
         <h2>Create Account</h2>
         <p>Create your Eteration account.</p>
 
-        <div className="form-group">
-          <label>Full Name</label>
-          <input
-            className={errors.fullName ? "input-error" : ""}
-            value={fullName}
-            onChange={(e) => {
-              setFullName(e.target.value);
+        <div className="form-row">
+          <div className="form-group">
+            <label>First Name</label>
 
-              setErrors((prev) => ({
-                ...prev,
-                fullName: validateName(e.target.value),
-              }));
-            }}
-            placeholder="Damla Nur Sert"
-          />
-          {errors.fullName && (
-<p className="field-error">
-  {errors.fullName || "\u00A0"}
-</p>          )}
+            <input
+              className={errors.firstName ? "input-error" : ""}
+              value={firstName}
+              onChange={(e) => {
+                setFirstName(e.target.value);
+
+                setErrors((prev) => ({
+                  ...prev,
+                  firstName: validateName(e.target.value),
+                }));
+              }}
+              placeholder="Ali"
+            />
+
+            {errors.firstName && (
+              <p className="field-error">{errors.firstName}</p>
+            )}
+          </div>
+
+          <div className="form-group">
+            <label>Last Name</label>
+
+            <input
+              className={errors.lastName ? "input-error" : ""}
+              value={lastName}
+              onChange={(e) => {
+                setLastName(e.target.value);
+
+                setErrors((prev) => ({
+                  ...prev,
+                  lastName: validateName(e.target.value),
+                }));
+              }}
+              placeholder="Yılmaz"
+            />
+
+            {errors.lastName && (
+              <p className="field-error">{errors.lastName}</p>
+            )}
+          </div>
         </div>
 
         <div className="form-group">
           <label>Work Email</label>
+
           <input
             type="email"
             className={errors.email ? "input-error" : ""}
@@ -136,14 +142,15 @@ function RegisterModal({
             }}
             placeholder="name@eteration.com"
           />
+
           {errors.email && (
-<p className="field-error">
-  {errors.email || "\u00A0"}
-</p>          )}
+            <p className="field-error">{errors.email}</p>
+          )}
         </div>
 
         <div className="form-group">
           <label>Phone</label>
+
           <input
             className={errors.phone ? "input-error" : ""}
             value={phone}
@@ -157,17 +164,16 @@ function RegisterModal({
             }}
             placeholder="+905551112233"
           />
+
           {errors.phone && (
-<p className="field-error">
-  {errors.phone || "\u00A0"}
-</p>          )}
+            <p className="field-error">{errors.phone}</p>
+          )}
         </div>
 
         <div className="form-group">
           <label>Password</label>
-          <input
-            type="password"
-            className={errors.password ? "input-error" : ""}
+
+          <PasswordInput
             value={password}
             onChange={(e) => {
               setPassword(e.target.value);
@@ -177,17 +183,25 @@ function RegisterModal({
                 password: validatePassword(e.target.value),
               }));
             }}
+            error={errors.password}
             placeholder="Enter your password"
+            autoComplete="new-password"
           />
+
           {errors.password && (
-<p className="field-error">
-  {errors.password || "\u00A0"}
-</p>          )}
+            <p className="field-error">{errors.password}</p>
+          )}
         </div>
 
         <button
           className="login-button"
-          disabled={!fullName || !email || !phone || !password}
+          disabled={
+            !firstName ||
+            !lastName ||
+            !email ||
+            !phone ||
+            !password
+          }
           onClick={handleRegister}
         >
           Register

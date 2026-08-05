@@ -55,3 +55,40 @@ export async function getMe(){
 
     return response.json();
 }
+
+export async function updateProfile(profile) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(`${BASE_URL}/auth/me`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(profile),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Failed to update profile");
+  }
+  return response.json();
+}
+
+export async function changePassword(data){
+  const response = await fetch (`${BASE_URL}/auth/me/password`,{
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization:  `Bearer ${localStorage.getItem("token")}`,
+    },
+    body: JSON.stringify(data),
+  });
+
+  const result = await response.json();
+
+  if(!response.ok) {
+    throw new Error(result.message || "Password update failed.")
+  }
+  return result;
+}

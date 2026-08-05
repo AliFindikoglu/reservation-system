@@ -13,6 +13,7 @@ import AdminAssignments from "./admin/AdminAssignments";
 import AdminRestrictions from "./admin/AdminRestrictions";
 import AdminDesks from "./admin/AdminDesks";
 import AdminAuditLogs from "./admin/AdminAuditLogs";
+import Settings from "./pages/Settings";
 
 function App() {
   return (
@@ -25,6 +26,15 @@ function App() {
           element={
             <ProtectedRoute>
               <MyReservations />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
             </ProtectedRoute>
           }
         />

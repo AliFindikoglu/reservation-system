@@ -1,7 +1,6 @@
 import {
   Map,
   CalendarDays,
-  Settings,
   ShieldCheck,
   Building2,
   LogOut,
@@ -10,6 +9,7 @@ import {
   CalendarRange,
   Armchair,
   Ban,
+  UserCog,
   ClipboardList,
   BarChart3,
 } from "lucide-react";
@@ -107,7 +107,6 @@ function Sidebar({ isAdmin = false }) {
         )}
       </nav>
 
-      {/* Alt Butonlar - Sadece Kullanıcı Giriş Yapmışsa Görünür */}
       {currentUser && (
         <div className="sidebar-bottom">
           {isAdmin ? (
@@ -116,10 +115,15 @@ function Sidebar({ isAdmin = false }) {
               <span>User workspace</span>
             </NavLink>
           ) : (
-            <button type="button" className="sidebar-bottom-btn">
-              <Settings size={17} />
+            <NavLink
+              to="/settings"
+              className={({ isActive }) =>
+                `sidebar-bottom-btn${isActive ? " active" : ""}`
+              }
+            >
+              <UserCog size={17} />
               <span>Settings</span>
-            </button>
+            </NavLink>
           )}
 
           <button
