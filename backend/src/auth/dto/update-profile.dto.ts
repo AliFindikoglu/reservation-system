@@ -1,8 +1,11 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
+import { ThemePreference } from "@prisma/client";
 import { Transform } from "class-transformer";
 import {
   IsNotEmpty,
+  IsEnum,
   IsString,
+  IsUUID,
   Matches,
   ValidateIf,
 } from "class-validator";
@@ -29,4 +32,16 @@ export class UpdateProfileDto {
     message: "Please enter an 11-digit phone number starting with 05.",
   })
   phone?: string;
+
+  @ApiPropertyOptional({ format: "uuid" })
+  @ValidateIf((_, value) => value !== undefined)
+  @IsUUID("4", { message: "Please select a valid preferred office." })
+  preferredOfficeId?: string;
+
+  @ApiPropertyOptional({ enum: ThemePreference })
+  @ValidateIf((_, value) => value !== undefined)
+  @IsEnum(ThemePreference, {
+    message: "Please select LIGHT or DARK as your theme preference.",
+  })
+  themePreference?: ThemePreference;
 }

@@ -11,6 +11,7 @@ function SeatGrid({
   isUpdateMode = false,
   interactionDisabled = false,
   adminMode = false,
+  tableCount = 32,
 }) {
   const blocks = [
     { letter: "A", seats: [1, 2, 3, 4, 5, 6, 7, 8] },
@@ -133,8 +134,8 @@ function SeatGrid({
             </div>
           </div>
 
-          {renderDesk(blocks[2])}
-          {renderDesk(blocks[3])}
+          {tableCount > 16 && renderDesk(blocks[2])}
+          {tableCount > 24 && renderDesk(blocks[3])}
         </div>
 
         {/* Sağ Ofis Bölmeleri */}

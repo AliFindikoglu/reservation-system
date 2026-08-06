@@ -44,6 +44,7 @@ export class TablesService {
     return {
       officeId,
       date,
+      tableCount: tables.length,
       tables: tables
         .filter((table) => !reservedIds.has(table.id))
         .map((table) => table.number),

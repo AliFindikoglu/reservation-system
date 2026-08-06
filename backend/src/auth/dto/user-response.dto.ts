@@ -1,5 +1,16 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { UserRole } from "@prisma/client";
+import { ThemePreference, UserRole } from "@prisma/client";
+
+export class PreferredOfficeResponseDto {
+  @ApiProperty({ format: "uuid" })
+  id!: string;
+
+  @ApiProperty({ example: "Istanbul Office" })
+  name!: string;
+
+  @ApiProperty({ example: "Istanbul" })
+  city!: string;
+}
 
 export class UserResponseDto {
   @ApiProperty({ format: "uuid" })
@@ -19,6 +30,15 @@ export class UserResponseDto {
 
   @ApiProperty({ example: true })
   isActive!: boolean;
+
+  @ApiProperty({ format: "uuid", nullable: true })
+  preferredOfficeId!: string | null;
+
+  @ApiProperty({ type: PreferredOfficeResponseDto, nullable: true })
+  preferredOffice!: PreferredOfficeResponseDto | null;
+
+  @ApiProperty({ enum: ThemePreference, example: ThemePreference.LIGHT })
+  themePreference!: ThemePreference;
 }
 
 export class AuthResponseDto {

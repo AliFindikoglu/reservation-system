@@ -148,7 +148,14 @@ Authorization: Bearer <accessToken>
   "email": "ayse.yilmaz@eteration.com",
   "phone": "05061234215",
   "role": "USER",
-  "isActive": true
+  "isActive": true,
+  "preferredOfficeId": "<istanbul-office-uuid>",
+  "preferredOffice": {
+    "id": "<istanbul-office-uuid>",
+    "name": "Istanbul Office",
+    "city": "Istanbul"
+  },
+  "themePreference": "LIGHT"
 }
 ```
 
@@ -162,11 +169,13 @@ Authorization: Bearer <accessToken>
 ```json
 {
   "fullName": "Ayşe Demir",
-  "phone": "05069876543"
+  "phone": "05069876543",
+  "preferredOfficeId": "<izmir-office-uuid>",
+  "themePreference": "DARK"
 }
 ```
 
-Yalnız `fullName` ve `phone` değiştirilebilir. E-posta değiştirilemez.
+`fullName`, `phone`, `preferredOfficeId` ve `themePreference` alanları değiştirilebilir. E-posta değiştirilemez. Yeni kayıtlar kayıt formunda ofis seçmeden İstanbul ofisine bağlanır; tercih sonradan Settings ekranından değiştirilebilir.
 
 ### 4.5 Şifre değiştirme
 
@@ -239,6 +248,7 @@ Public endpoint’tir.
 {
   "officeId": "<office-uuid>",
   "date": "2026-08-10",
+  "tableCount": 32,
   "tables": [1, 2, 5, 8]
 }
 ```
@@ -350,7 +360,14 @@ POST /reservations
     "id": "<office-uuid>",
     "name": "Istanbul Office",
     "city": "Istanbul"
-  }
+  },
+  "equipments": [
+    {
+      "id": "<equipment-uuid>",
+      "code": "MONITOR",
+      "name": "Monitor"
+    }
+  ]
 }
 ```
 
@@ -361,6 +378,7 @@ GET /reservations/me
 ```
 
 Yanıt rezervasyon tarihine göre artan sıralı bir dizidir. İptal edilen kayıtlar kullanıcıya dönmez.
+Her rezervasyonda ilgili masanın aktif ekipmanları `equipments` dizisinde yer alır.
 
 ### 7.3 Rezervasyon güncelleme
 
@@ -386,6 +404,7 @@ Masa veya ofis değişikliği:
 ```
 
 Masa değiştirilirken `officeId` ve `tableNumber` birlikte gönderilmelidir. Başarılı işlem mevcut rezervasyonun ID değerini korur.
+Güncelleme yanıtındaki `equipments` dizisi yeni seçilen masanın aktif ekipmanlarını içerir.
 
 ### 7.4 Rezervasyon iptali
 
@@ -740,8 +759,9 @@ Yanıt normal masa bilgilerine ek olarak `occupant`, `reservationId`, `assignmen
 ### 10.7 Ekipman yönetimi
 
 ```http
-POST /admin/equipments
-PUT  /admin/tables/:id/equipments
+POST   /admin/equipments
+DELETE /admin/equipments/:id
+PUT    /admin/tables/:id/equipments
 ```
 
 Yeni ekipman:
@@ -763,6 +783,24 @@ Masa ekipmanlarının eksiksiz yeni listesi:
 ```
 
 Boş `equipmentIds` dizisi masadaki bütün ekipmanları kaldırır.
+
+Ekipman türünü silme:
+
+```http
+DELETE /admin/equipments/<equipment-uuid>
+Authorization: Bearer <admin-access-token>
+```
+
+```json
+{
+  "message": "The equipment has been deleted successfully."
+}
+```
+
+Silme işlemi ekipmanı fiziksel olarak kaldırmaz; `isActive` alanını `false`
+yapar, ekipmanı bağlı olduğu bütün masalardan kaldırır ve işlemi audit log’a
+kaydeder. Silinmiş bir ekipmanın tekrar silinmesi `409 Conflict`, bulunamayan
+bir kimlik gönderilmesi `404 Not Found` döndürür.
 
 ### 10.8 Admin etkinlik yönetimi
 

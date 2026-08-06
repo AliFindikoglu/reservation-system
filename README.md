@@ -104,10 +104,10 @@ Başarılı yanıt `200` durum koduyla kayıt yanıtıyla aynı yapıdadır.
 ### Profil ve masalar
 
 - `GET /auth/me` — JWT zorunlu, giriş yapan kullanıcının profilini döndürür.
-- `PATCH /auth/me` — JWT zorunlu, kullanıcının yalnız adını ve/veya telefonunu günceller; e-posta değiştirilemez.
+- `PATCH /auth/me` — JWT zorunlu; ad, telefon, tercih edilen ofis ve `LIGHT`/`DARK` tema tercihini günceller. E-posta değiştirilemez.
 - `PATCH /auth/me/password` — JWT zorunlu, mevcut şifreyi doğruladıktan sonra güçlü yeni şifreyi kaydeder ve başarı mesajı döndürür.
-- `GET /tables/available?date=YYYY-MM-DD` — `{ "date": "YYYY-MM-DD", "tables": [1, 2, 3] }` biçiminde boş masa numaralarını döndürür.
-- `GET /tables/statuses?date=YYYY-MM-DD` — JWT zorunlu, 32 masanın tamamını `available`, `reserved` veya `mine` durumuyla döndürür.
+- `GET /tables/available?officeId=<uuid>&date=YYYY-MM-DD` — seçilen ofisin masa sayısını ve boş masa numaralarını döndürür.
+- `GET /tables/statuses?officeId=<uuid>&date=YYYY-MM-DD` — JWT zorunlu, seçilen ofisin masalarını `available`, `reserved` veya `mine` durumuyla döndürür.
 - `GET /tables/:id` — JWT zorunlu, masa kodunu ve ekipmanlarını döndürür.
 - `GET /equipments` — JWT zorunlu, seçilebilir aktif ekipman kataloğunu döndürür.
 - `GET /table-assignments/me` — kullanıcının aktif tarih aralıklı masa atamalarını döndürür.
@@ -127,6 +127,7 @@ Admin dolu bir masayı başka kullanıcıya verirken `replacementTableNumber` il
 - `/admin/tables/statuses` — `admin_reserved` ve `assigned` ayrımıyla ayrıntılı masa görünümü.
 - `PUT /admin/tables/:id/equipments` — masanın checkbox seçimlerinden gelen ekipman listesini değiştirme.
 - `POST /admin/equipments` — yeni ekipman türü oluşturma; tek ve çift monitör aynı masaya birlikte atanamaz.
+- `DELETE /admin/equipments/:id` — ekipman türünü pasifleştirir ve masa bağlantılarını kaldırır.
 - `/admin/audit-logs` — yönetici işlem geçmişini görüntüleme.
 
 Çakışmalı admin işlemlerinde önce `.../preview` endpoint’i çağrılır. Önizleme etkilenecek rezervasyonları ve atamaları döndürür; işlem ancak açık onay alanıyla gerçekleştirilir.

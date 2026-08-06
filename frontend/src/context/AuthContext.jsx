@@ -11,6 +11,12 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
 
+  useEffect(() => {
+    const theme = currentUser?.themePreference ?? "LIGHT";
+    document.documentElement.dataset.theme = theme.toLowerCase();
+    localStorage.setItem("themePreference", theme);
+  }, [currentUser?.themePreference]);
+
   async function login(credentials) {
     const data = await loginApi(credentials);
 
@@ -73,6 +79,8 @@ export function AuthProvider({ children }) {
   );
 }
 
+// AuthProvider and its companion hook intentionally share the same context module.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   return useContext(AuthContext);
 }

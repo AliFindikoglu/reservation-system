@@ -18,15 +18,21 @@ enum EventSuggestionStatus {
   REJECTED
 }
 
+enum ThemePreference {
+  LIGHT
+  DARK
+}
+
 model Office {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  city      String   @unique
-  address   String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  tables    Table[]
+  id               String   @id @default(uuid())
+  name             String   @unique
+  city             String   @unique
+  address          String?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  tables           Table[]
+  preferredByUsers User[]   @relation("PreferredOffice")
 }
 
 model Table {
@@ -234,8 +240,11 @@ model User {
   passwordHash               String
   role                       UserRole          @default(USER)
   isActive                   Boolean           @default(true)
+  preferredOfficeId          String?
+  themePreference            ThemePreference   @default(LIGHT)
   createdAt                  DateTime          @default(now())
   updatedAt                  DateTime          @updatedAt
+  preferredOffice            Office?           @relation("PreferredOffice", fields: [preferredOfficeId], references: [id], onDelete: SetNull)
   reservations               Reservation[]     @relation("UserReservations")
   reservationsCreatedByAdmin Reservation[]     @relation("ReservationCreatedByAdmin")
   reservationsCancelled      Reservation[]     @relation("ReservationCancelledBy")
@@ -254,4 +263,6 @@ model User {
   eventSuggestionsReviewed   EventSuggestion[] @relation("EventSuggestionsReviewedByAdmin")
   eventReviews               EventReview[]     @relation("EventReviewsByUser")
   eventReviewsDeleted        EventReview[]     @relation("EventReviewsDeletedByAdmin")
+
+  @@index([preferredOfficeId])
 }

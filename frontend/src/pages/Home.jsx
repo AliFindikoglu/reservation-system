@@ -14,6 +14,7 @@ import RegisterModal from "../components/RegisterModal/RegisterModal";
 import { getTableStatuses, getAvailableTables } from "../api/tableApi";
 import { createReservation } from "../api/reservationsApi";
 import { getMyRestrictions } from "../api/restrictionsApi";
+import { getOffices } from "../api/officesApi";
 
 import { useAuth } from "../context/AuthContext";
 
@@ -25,6 +26,10 @@ function Home() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [activeRestriction, setActiveRestriction] = useState(null);
+  const [offices, setOffices] = useState([]);
+  const [selectedOfficeId, setSelectedOfficeId] = useState("");
+  const [tableCount, setTableCount] = useState(32);
+  const [tableLoadError, setTableLoadError] = useState("");
   
   const today = new Date();
   const maxDate = new Date();
@@ -39,6 +44,32 @@ function Home() {
   );
 console.log(selectedTable?.equipments);
   const { login, register, currentUser } = useAuth();
+
+  useEffect(() => {
+    let active = true;
+    getOffices()
+      .then((data) => {
+        if (!active) return;
+        setOffices(data);
+        const preferred = data.find(
+          (office) => office.id === currentUser?.preferredOfficeId,
+        );
+        const istanbul = data.find(
+          (office) => office.city.toLowerCase() === "istanbul",
+        );
+        setSelectedOfficeId((current) => {
+          if (preferred) return preferred.id;
+          if (!currentUser) return (istanbul ?? data[0])?.id ?? "";
+          return data.some((office) => office.id === current)
+            ? current
+            : (istanbul ?? data[0])?.id ?? "";
+        });
+      })
+      .catch((error) => setTableLoadError(error.message));
+    return () => {
+      active = false;
+    };
+  }, [currentUser]);
 
   async function handleLogin(credentials) {
     try {
@@ -65,10 +96,12 @@ console.log(selectedTable?.equipments);
   }
 
   async function loadTables() {
+    if (!selectedOfficeId) return;
     try {
+      setTableLoadError("");
       if (currentUser) {
         const [tableData, restrictions] = await Promise.all([
-          getTableStatuses(selectedDate),
+          getTableStatuses(selectedOfficeId, selectedDate),
           getMyRestrictions(),
         ]);
         const restriction = restrictions.find((item) => {
@@ -79,21 +112,25 @@ console.log(selectedTable?.equipments);
         });
 
         setTableStatuses(tableData.tables);
+        setTableCount(tableData.tables.length);
         setActiveRestriction(restriction ?? null);
         if (restriction) setSelectedSeat(null);
       } else {
         setActiveRestriction(null);
-        const data = await getAvailableTables(selectedDate);
+        const data = await getAvailableTables(selectedOfficeId, selectedDate);
         const availableTables = new Set(data.tables);
-        const tables = Array.from({ length: 32 }, (_, i) => ({
+        const tables = Array.from({ length: data.tableCount }, (_, i) => ({
           number: i + 1,
           status: availableTables.has(i + 1) ? "available" : "reserved",
         }));
 
         setTableStatuses(tables);
+        setTableCount(data.tableCount);
       }
     } catch (error) {
       console.error(error);
+      setTableStatuses([]);
+      setTableLoadError(error.message || "The floor plan could not be loaded.");
     }
   }
 
@@ -103,7 +140,9 @@ console.log(selectedTable?.equipments);
     }, 0);
 
     return () => clearTimeout(timeoutId);
-  }, [selectedDate, currentUser]);
+  // loadTables is intentionally recreated with the latest authentication and office state.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate, selectedOfficeId, currentUser]);
 
   function handleSeatClick(seatNumber) {
   if (!currentUser) {
@@ -135,6 +174,7 @@ console.log(selectedTable?.equipments);
     }
     try {
       await createReservation({
+        officeId: selectedOfficeId,
         tableNumber: selectedSeat,
         reservationDate: selectedDate,
       });
@@ -170,6 +210,33 @@ console.log(selectedTable?.equipments);
 
         <div className="main-content">
           <div className="hero">
+            <div className="office-switcher-row">
+              <label className="office-switcher">
+                <span>Office</span>
+                <select
+                  value={selectedOfficeId}
+                  onChange={(event) => {
+                    setSelectedOfficeId(event.target.value);
+                    setSelectedSeat(null);
+                  }}
+                  disabled={offices.length === 0}
+                >
+                  {offices.map((office) => (
+                    <option key={office.id} value={office.id}>
+                      {office.city}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {tableLoadError && (
+              <div className="restriction-banner" role="alert">
+                <strong>Floor plan unavailable</strong>
+                <span>{tableLoadError}</span>
+              </div>
+            )}
+
             {activeRestriction && (
               <div className="restriction-banner" role="alert">
                 <strong>Reservation access restricted</strong>
@@ -188,6 +255,7 @@ console.log(selectedTable?.equipments);
               selectedSeat={selectedSeat}
               onSeatClick={handleSeatClick}
               interactionDisabled={Boolean(activeRestriction)}
+              tableCount={tableCount}
             />
             
 

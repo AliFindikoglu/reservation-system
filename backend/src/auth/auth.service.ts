@@ -59,19 +59,33 @@ export class AuthService {
       phone: user.phone,
       role: user.role,
       isActive: user.isActive,
+      preferredOfficeId: user.preferredOfficeId,
+      preferredOffice: user.preferredOffice,
+      themePreference: user.themePreference,
     };
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
-    if (dto.fullName === undefined && dto.phone === undefined) {
+    if (
+      dto.fullName === undefined &&
+      dto.phone === undefined &&
+      dto.preferredOfficeId === undefined &&
+      dto.themePreference === undefined
+    ) {
       throw new BadRequestException(
-        "Please provide at least one of the following fields: full name or phone number.",
+        "Please provide at least one profile or preference field to update.",
       );
     }
 
     const user = await this.usersService.updateProfile(userId, {
       ...(dto.fullName !== undefined ? { fullName: dto.fullName.trim() } : {}),
       ...(dto.phone !== undefined ? { phone: dto.phone.trim() } : {}),
+      ...(dto.preferredOfficeId !== undefined
+        ? { preferredOfficeId: dto.preferredOfficeId }
+        : {}),
+      ...(dto.themePreference !== undefined
+        ? { themePreference: dto.themePreference }
+        : {}),
     });
 
     return {
@@ -81,6 +95,9 @@ export class AuthService {
       phone: user.phone,
       role: user.role,
       isActive: user.isActive,
+      preferredOfficeId: user.preferredOfficeId,
+      preferredOffice: user.preferredOffice,
+      themePreference: user.themePreference,
     };
   }
 
@@ -123,6 +140,9 @@ export class AuthService {
     phone: string;
     role: "USER" | "ADMIN";
     isActive: boolean;
+    preferredOfficeId: string | null;
+    preferredOffice: { id: string; name: string; city: string } | null;
+    themePreference: "LIGHT" | "DARK";
   }) {
     return {
       accessToken: this.jwtService.sign({ userId: user.id, email: user.email }),
@@ -133,6 +153,9 @@ export class AuthService {
         phone: user.phone,
         role: user.role,
         isActive: user.isActive,
+        preferredOfficeId: user.preferredOfficeId,
+        preferredOffice: user.preferredOffice,
+        themePreference: user.themePreference,
       },
     };
   }

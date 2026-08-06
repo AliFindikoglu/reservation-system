@@ -40,6 +40,17 @@ async function request(path, options = {}) {
 
 const json = (method, body) => ({ method, body: JSON.stringify(body) });
 
+function queryString(values) {
+  const params = new URLSearchParams();
+  Object.entries(values).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      params.set(key, String(value));
+    }
+  });
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
 export const adminApi = {
   getUsers: (includeInactive = true) =>
     request(`/admin/users?includeInactive=${includeInactive}`),
@@ -48,8 +59,8 @@ export const adminApi = {
   updateUserRole: (id, role) =>
     request(`/admin/users/${id}/role`, json("PATCH", { role })),
 
-  getReservations: (includeCancelled = true) =>
-    request(`/admin/reservations?includeCancelled=${includeCancelled}`),
+  getReservations: (filters = {}) =>
+    request(`/admin/reservations${queryString({ status: "ALL", ...filters })}`),
   previewReservation: (payload) =>
     request("/admin/reservations/preview", json("POST", payload)),
   createReservation: (payload) =>
@@ -83,13 +94,15 @@ export const adminApi = {
   revokeRestriction: (id, reason) =>
     request(`/admin/restrictions/${id}`, json("DELETE", { reason })),
 
-  getAdminTableStatuses: (date) =>
-    request(`/admin/tables/statuses?date=${encodeURIComponent(date)}`),
+  getOffices: () => request("/offices"),
+  getAdminTableStatuses: (officeId, date) =>
+    request(`/admin/tables/statuses${queryString({ officeId, date })}`),
   getTable: (id) => request(`/tables/${id}`),
   getEquipments: () => request("/equipments"),
   createEquipment: (payload) => request("/admin/equipments", json("POST", payload)),
-  updateTableEquipments: (id, equipmentIds) =>
-    request(`/admin/tables/${id}/equipments`, json("PUT", { equipmentIds })),
+  deleteEquipment: (id) => request(`/admin/equipments/${id}`, { method: "DELETE" }),
+  updateTableEquipments: (id, officeId, equipmentIds) =>
+    request(`/admin/tables/${id}/equipments`, json("PUT", { officeId, equipmentIds })),
 
   getAuditLogs: () => request("/admin/audit-logs"),
 };
