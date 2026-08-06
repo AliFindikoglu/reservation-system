@@ -37,7 +37,7 @@ function Home() {
   const selectedTable = tableStatuses.find(
     (table) => table.number === selectedSeat
   );
-
+console.log(selectedTable?.equipments);
   const { login, register, currentUser } = useAuth();
 
   async function handleLogin(credentials) {
