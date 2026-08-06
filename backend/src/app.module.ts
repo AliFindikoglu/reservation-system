@@ -4,6 +4,13 @@ import { PrismaModule } from "./prisma/prisma.module";
 import { ReservationsModule } from "./reservations/reservations.module";
 import { TablesModule } from "./tables/tables.module";
 import { AuthModule } from "./auth/auth.module";
+import { AdminModule } from "./admin/admin.module";
+import { EquipmentsModule } from "./equipments/equipments.module";
+import { NotificationsModule } from "./notifications/notifications.module";
+import { TableAssignmentsModule } from "./table-assignments/table-assignments.module";
+import { RestrictionsModule } from "./restrictions/restrictions.module";
+import { OfficesModule } from "./offices/offices.module";
+import { EventsModule } from "./events/events.module";
 
 @Module({
   imports: [
@@ -12,7 +19,7 @@ import { AuthModule } from "./auth/auth.module";
       validate: (environment: Record<string, unknown>) => {
         const jwtSecret = String(environment.JWT_SECRET ?? "");
         if (jwtSecret.length < 32) {
-          throw new Error("JWT_SECRET en az 32 karakter olmalıdır.");
+          throw new Error("JWT_SECRET must be at least 32 characters long.");
         }
 
         const maximumDays = Number(
@@ -20,7 +27,7 @@ import { AuthModule } from "./auth/auth.module";
         );
         if (!Number.isInteger(maximumDays) || maximumDays < 0) {
           throw new Error(
-            "MAX_RESERVATION_DAYS_AHEAD sıfır veya pozitif bir tam sayı olmalıdır.",
+            "MAX_RESERVATION_DAYS_AHEAD must be a non-negative integer.",
           );
         }
 
@@ -38,6 +45,13 @@ import { AuthModule } from "./auth/auth.module";
     TablesModule,
     ReservationsModule,
     AuthModule,
+    AdminModule,
+    EquipmentsModule,
+    NotificationsModule,
+    TableAssignmentsModule,
+    RestrictionsModule,
+    OfficesModule,
+    EventsModule,
   ],
 })
 export class AppModule {}

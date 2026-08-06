@@ -1,29 +1,25 @@
-# Masa Rezervasyon API Referansı
+# Rezervasyon Sistemi API Dokümantasyonu
 
-Bu belge, Masa Rezervasyon Sistemi backend servisinin HTTP sözleşmesini tanımlar. Web, mobil veya başka bir istemci geliştiren tüm tüketiciler için geçerlidir.
+Bu belge, Rezervasyon Sistemi backend servisinin güncel HTTP sözleşmesini tanımlar. Kullanıcı ve admin arayüzleri aynı API’yi kullanır; erişim yetkileri JWT ve kullanıcı rolü üzerinden kontrol edilir.
 
 ## 1. Genel bilgiler
 
 | Bilgi | Değer |
 |---|---|
-| API sürümü | `1.0` |
+| Geliştirme Base URL | `http://localhost:3000` |
+| Swagger UI | `http://localhost:3000/api` |
 | Veri biçimi | JSON |
 | Kimlik doğrulama | Bearer JWT |
-| JWT geçerlilik süresi | 1 saat |
+| Varsayılan JWT süresi | 1 saat |
 | Tarih biçimi | `YYYY-MM-DD` |
+| Tarih-saat biçimi | ISO 8601 |
 | İş saat dilimi | `Europe/Istanbul` |
-| Swagger yolu | `/api` |
 
-Yerel ortam adresleri:
+Frontend ortam değişkeni:
 
-| Ortam | Base URL | Swagger |
-|---|---|---|
-| Geliştirme | `http://localhost:3000` | `http://localhost:3000/api` |
-| Test | `http://localhost:3001` | `http://localhost:3001/api` |
-
-Üretim ortamında istemci, sistem yöneticisinin sağladığı HTTPS base URL’yi kullanmalıdır. `localhost`, yalnız API ile istemci aynı bilgisayarda çalışıyorsa geçerlidir.
-
-## 2. İstek kuralları
+```env
+VITE_API_BASE_URL=http://localhost:3000
+```
 
 JSON gövdeli isteklerde:
 
@@ -37,456 +33,877 @@ Korumalı endpoint’lerde:
 Authorization: Bearer <accessToken>
 ```
 
-Backend, DTO’da tanımlanmayan alanları kabul etmez. Fazladan bir alan gönderildiğinde `400 Bad Request` döner.
+Swagger yalnızca `/api` yolundadır. Gerçek endpoint’lere `/api` öneki eklenmez:
 
-## 3. İş kuralları
+```text
+Doğru: GET /offices
+Yanlış: GET /api/offices
+Yanlış: GET /offices/get
+```
 
-- Sistemde 1–32 arasında 32 masa bulunur.
-- Kullanıcı yalnız yapılandırılmış şirket e-posta uzantısıyla kayıt olabilir.
-- E-posta adresi küçük harfe dönüştürülerek saklanır ve benzersizdir.
-- Bir kullanıcı aynı tarih için yalnız bir rezervasyona sahip olabilir.
-- Bir masa aynı tarih için yalnız bir kullanıcı tarafından rezerve edilebilir.
-- Rezervasyon bugün ile yapılandırılmış ileri gün sınırı arasında oluşturulabilir. Varsayılan sınır 30 gündür ve son gün dahildir.
-- Kullanıcı yalnız kendi rezervasyonlarını görüntüleyebilir, güncelleyebilir ve silebilir.
-- Rezervasyon silindiğinde masa aynı tarih için yeniden kullanılabilir.
-- Rezervasyon sahipliği JWT’deki kullanıcı kimliğiyle belirlenir.
-- Rezervasyon kodu veya ayrı yönetim token’ı kullanılmaz.
+## 2. Standart hata biçimi
 
-Masa/tarih ve kullanıcı/tarih benzersizlikleri veritabanı seviyesinde korunur. Eşzamanlı çakışan isteklerden yalnız ilk tamamlanan başarılı olur.
+API bütün hataları tek bir İngilizce mesajla döndürür:
 
-## 4. Veri modelleri
-
-### User
-
-```ts
-interface User {
-  id: string;       // UUID
-  fullName: string;
-  email: string;
-  phone: string;
+```json
+{
+  "statusCode": 409,
+  "message": "The selected table is already reserved for this date."
 }
 ```
 
-### AuthResponse
+| HTTP | Anlam |
+|---:|---|
+| `200` | Başarılı okuma veya güncelleme |
+| `201` | Kaynak oluşturuldu |
+| `204` | İşlem başarılı, yanıt gövdesi yok |
+| `400` | İstek veya alan doğrulaması başarısız |
+| `401` | JWT eksik, geçersiz veya süresi dolmuş |
+| `403` | Kullanıcının işlem yetkisi yok |
+| `404` | Kaynak bulunamadı |
+| `409` | İstek mevcut kayıt veya iş kuralıyla çakışıyor |
 
-```ts
-interface AuthResponse {
-  accessToken: string;
-  user: User;
-}
-```
+DTO’da tanımlanmayan fazladan alanlar kabul edilmez. Birden fazla doğrulama hatası oluşursa yalnız ilk mesaj döndürülür.
 
-### Reservation
+## 3. Temel iş kuralları
 
-```ts
-interface Reservation {
-  id: string;                 // UUID
-  reservationDate: string;    // YYYY-MM-DD
-  tableNumber: number;        // 1-32
-}
-```
+- Sistemde İstanbul ve İzmir gibi birden fazla ofis bulunabilir.
+- İstanbul ofisinde 32, İzmir ofisinde 16 masa başlangıç verisi olarak oluşturulur.
+- Masa numarası yalnız kendi ofisi içinde benzersizdir.
+- Frontend ofis UUID değerlerini sabit yazmamalı, `GET /offices` ile almalıdır.
+- Normal kullanıcı aynı gün yalnız bir aktif rezervasyona sahip olabilir.
+- Aynı ofisteki bir masa, aynı gün yalnız bir aktif rezervasyon veya atama tarafından kullanılabilir.
+- Normal rezervasyonlar bugün ile `MAX_RESERVATION_DAYS_AHEAD` arasındadır; varsayılan sınır 30 gündür.
+- Rezervasyon ve değerlendirme silmeleri soft-delete/soft-cancel yaklaşımıyla geçmişte korunur.
+- Ceza, masa ataması ve admin rezervasyonu kuralları backend tarafından uygulanır.
+- Aktiflik ve rol kontrolleri yalnız frontend’e bırakılmaz.
 
-### AvailableTablesResponse
+## 4. Authentication API
 
-```ts
-interface AvailableTablesResponse {
-  date: string;       // YYYY-MM-DD
-  tables: number[];   // Boş masa numaraları
-}
-```
-
-### ApiError
-
-```ts
-interface ApiError {
-  statusCode: number;
-  error: string;
-  message: string | string[];
-}
-```
-
-## 5. Authentication API
-
-### 5.1 Kullanıcı kaydı
+### 4.1 Kayıt
 
 ```http
 POST /auth/register
 ```
 
-Kimlik doğrulama gerekmez.
-
-İstek gövdesi:
-
 ```json
 {
   "fullName": "Ayşe Yılmaz",
   "email": "ayse.yilmaz@eteration.com",
-  "phone": "+905551112233",
-  "password": "gucluParola1"
+  "phone": "05061234215",
+  "password": "GucluParola1!"
 }
 ```
 
-Alan doğrulamaları:
+Kurallar:
 
-| Alan | Kural |
-|---|---|
-| `fullName` | Boş olmayan string |
-| `email` | Geçerli e-posta ve şirket uzantısı |
-| `phone` | İsteğe bağlı `+` ile 10–15 rakam |
-| `password` | En az 6 karakter |
+- E-posta geçerli şirket e-postası olmalıdır.
+- Telefon `05` ile başlayan 11 haneli numara olmalıdır.
+- Parola en az sekiz karakter; büyük harf, küçük harf, sayı ve sembol içermeli, boşluk içermemelidir.
 
-Başarılı yanıt — `201 Created`:
+`201 Created`:
 
 ```json
 {
   "accessToken": "<jwt>",
   "user": {
-    "id": "99e211c1-d21d-4932-82b4-8a8201295e3e",
+    "id": "<user-uuid>",
     "fullName": "Ayşe Yılmaz",
     "email": "ayse.yilmaz@eteration.com",
-    "phone": "+905551112233"
+    "phone": "05061234215",
+    "role": "USER",
+    "isActive": true
   }
 }
 ```
 
-Kayıt yanıtı JWT içerdiğinden kullanıcı ayrıca login olmak zorunda değildir.
+Kayıt yanıtı JWT içerdiği için ayrıca login isteği gerekmez.
 
-Hatalar:
-
-| HTTP | Açıklama |
-|---:|---|
-| `400` | Alan doğrulaması başarısız |
-| `409` | E-posta zaten kayıtlı |
-
-### 5.2 Login
+### 4.2 Giriş
 
 ```http
 POST /auth/login
 ```
 
-Kimlik doğrulama gerekmez.
-
-İstek gövdesi:
-
 ```json
 {
   "email": "ayse.yilmaz@eteration.com",
-  "password": "gucluParola1"
+  "password": "GucluParola1!"
 }
 ```
 
-Başarılı yanıt — `200 OK`: `AuthResponse`
+Başarılı yanıt kayıt endpoint’iyle aynı `accessToken` ve `user` yapısını döndürür.
 
-Hatalar:
-
-| HTTP | Açıklama |
-|---:|---|
-| `400` | İstek doğrulaması başarısız |
-| `401` | E-posta veya parola hatalı |
-
-### 5.3 Aktif kullanıcı profili
+### 4.3 Profil
 
 ```http
 GET /auth/me
 Authorization: Bearer <accessToken>
 ```
 
-Başarılı yanıt — `200 OK`:
-
 ```json
 {
-  "id": "99e211c1-d21d-4932-82b4-8a8201295e3e",
+  "id": "<user-uuid>",
   "fullName": "Ayşe Yılmaz",
   "email": "ayse.yilmaz@eteration.com",
-  "phone": "+905551112233"
+  "phone": "05061234215",
+  "role": "USER",
+  "isActive": true,
+  "preferredOfficeId": "<istanbul-office-uuid>",
+  "preferredOffice": {
+    "id": "<istanbul-office-uuid>",
+    "name": "Istanbul Office",
+    "city": "Istanbul"
+  },
+  "themePreference": "LIGHT"
 }
 ```
 
-Hatalar:
-
-| HTTP | Açıklama |
-|---:|---|
-| `401` | JWT eksik, geçersiz, süresi dolmuş veya kullanıcı mevcut değil |
-
-### 5.4 Profil güncelleme
+### 4.4 Profil güncelleme
 
 ```http
 PATCH /auth/me
 Authorization: Bearer <accessToken>
 ```
 
-Yalnız `fullName` ve `phone` değiştirilebilir. E-posta değiştirilemez.
-
-İstek örneği:
-
 ```json
 {
-  "fullName": "Ayşe Kaya",
-  "phone": "+905559999999"
+  "fullName": "Ayşe Demir",
+  "phone": "05069876543",
+  "preferredOfficeId": "<izmir-office-uuid>",
+  "themePreference": "DARK"
 }
 ```
 
-Alanlardan yalnız biri de gönderilebilir.
+`fullName`, `phone`, `preferredOfficeId` ve `themePreference` alanları değiştirilebilir. E-posta değiştirilemez. Yeni kayıtlar kayıt formunda ofis seçmeden İstanbul ofisine bağlanır; tercih sonradan Settings ekranından değiştirilebilir.
 
-Başarılı yanıt — `200 OK`:
+### 4.5 Şifre değiştirme
+
+```http
+PATCH /auth/me/password
+Authorization: Bearer <accessToken>
+```
 
 ```json
 {
-  "id": "99e211c1-d21d-4932-82b4-8a8201295e3e",
-  "fullName": "Ayşe Kaya",
-  "email": "ayse.yilmaz@eteration.com",
-  "phone": "+905559999999"
+  "currentPassword": "GucluParola1!",
+  "newPassword": "YeniParola2!"
 }
 ```
 
-Hatalar:
+```json
+{
+  "message": "Your password has been changed successfully."
+}
+```
 
-| HTTP | Açıklama |
-|---:|---|
-| `400` | Gövde boş, ad/telefon geçersiz veya `email` gibi izin verilmeyen alan gönderildi |
-| `401` | JWT problemi |
+Şifre değişikliği mevcut JWT’yi iptal etmez. Refresh token ve `tokenVersion` mekanizması bulunmaz.
+
+## 5. Offices API
+
+Bu endpoint’ler public’tir.
+
+### 5.1 Aktif ofisleri listeleme
+
+```http
+GET /offices
+```
+
+```json
+[
+  {
+    "id": "<istanbul-office-uuid>",
+    "name": "Istanbul Office",
+    "city": "Istanbul",
+    "address": null
+  },
+  {
+    "id": "<izmir-office-uuid>",
+    "name": "Izmir Office",
+    "city": "Izmir",
+    "address": null
+  }
+]
+```
+
+### 5.2 Ofis detayı
+
+```http
+GET /offices/:id
+```
+
+Geçersiz UUID için `400`, bulunamayan veya pasif ofis için `404` döner.
 
 ## 6. Tables API
 
 ### 6.1 Boş masaları listeleme
 
 ```http
-GET /tables/available?date=2026-08-01
+GET /tables/available?officeId=<office-uuid>&date=2026-08-10
 ```
 
-Bu endpoint public’tir.
-
-Başarılı yanıt — `200 OK`:
+Public endpoint’tir.
 
 ```json
 {
-  "date": "2026-08-01",
-  "tables": [1, 2, 4, 5, 8, 12]
+  "officeId": "<office-uuid>",
+  "date": "2026-08-10",
+  "tableCount": 32,
+  "tables": [1, 2, 5, 8]
 }
 ```
 
-`tables` dizisi yalnız seçilen tarihte boş olan masa numaralarını içerir.
+### 6.2 Kullanıcıya göre masa durumları
 
-Hatalar:
+```http
+GET /tables/statuses?officeId=<office-uuid>&date=2026-08-10
+Authorization: Bearer <accessToken>
+```
 
-| HTTP | Açıklama |
-|---:|---|
-| `400` | Tarih geçersiz, geçmişte veya ileri gün sınırının dışında |
+```json
+{
+  "officeId": "<office-uuid>",
+  "date": "2026-08-10",
+  "tables": [
+    {
+      "id": 1,
+      "number": 1,
+      "code": "A1",
+      "status": "available",
+      "equipments": [
+        {
+          "id": "<equipment-uuid>",
+          "code": "MONITOR",
+          "name": "Monitor"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "number": 2,
+      "code": "A2",
+      "status": "mine",
+      "equipments": []
+    },
+    {
+      "id": 3,
+      "number": 3,
+      "code": "A3",
+      "status": "reserved",
+      "equipments": []
+    }
+  ]
+}
+```
+
+Normal kullanıcı durumları:
+
+- `available`
+- `reserved`
+- `mine`
+
+### 6.3 Masa detayı
+
+```http
+GET /tables/:id
+Authorization: Bearer <accessToken>
+```
+
+Buradaki `id`, masa numarası değil veritabanındaki sayısal masa kimliğidir.
+
+```json
+{
+  "id": 1,
+  "number": 1,
+  "code": "A1",
+  "office": {
+    "id": "<office-uuid>",
+    "name": "Istanbul Office",
+    "city": "Istanbul"
+  },
+  "equipments": [
+    {
+      "id": "<equipment-uuid>",
+      "code": "DOCK_STATION",
+      "name": "Dock Station"
+    }
+  ]
+}
+```
 
 ## 7. Reservations API
 
-Bu bölümdeki tüm endpoint’ler Bearer JWT gerektirir.
+Bu bölümdeki bütün endpoint’ler Bearer JWT gerektirir.
 
 ### 7.1 Rezervasyon oluşturma
 
 ```http
 POST /reservations
-Authorization: Bearer <accessToken>
 ```
-
-İstek gövdesi:
 
 ```json
 {
+  "officeId": "<office-uuid>",
   "tableNumber": 12,
-  "reservationDate": "2026-08-01"
+  "reservationDate": "2026-08-10"
 }
 ```
 
-Başarılı yanıt — `201 Created`:
+`201 Created`:
 
 ```json
 {
-  "id": "0c2ae9a3-8106-47f7-859f-c23761f55dd7",
-  "reservationDate": "2026-08-01",
-  "tableNumber": 12
+  "id": "<reservation-uuid>",
+  "reservationDate": "2026-08-10",
+  "tableNumber": 12,
+  "office": {
+    "id": "<office-uuid>",
+    "name": "Istanbul Office",
+    "city": "Istanbul"
+  },
+  "equipments": [
+    {
+      "id": "<equipment-uuid>",
+      "code": "MONITOR",
+      "name": "Monitor"
+    }
+  ]
 }
 ```
 
-Hatalar:
-
-| HTTP | Açıklama |
-|---:|---|
-| `400` | Tarih veya masa numarası geçersiz |
-| `401` | JWT problemi |
-| `404` | Masa bulunamadı |
-| `409` | Masa/tarih dolu veya kullanıcının aynı gün başka rezervasyonu var |
-
-Bir istemci `409` aldıktan sonra boş masa listesini yeniden sorgulamalıdır.
-
-### 7.2 Kullanıcının rezervasyonları
+### 7.2 Kullanıcının aktif rezervasyonları
 
 ```http
 GET /reservations/me
-Authorization: Bearer <accessToken>
 ```
 
-Başarılı yanıt — `200 OK`:
-
-```json
-[
-  {
-    "id": "0c2ae9a3-8106-47f7-859f-c23761f55dd7",
-    "reservationDate": "2026-08-01",
-    "tableNumber": 12
-  }
-]
-```
-
-Rezervasyonu olmayan kullanıcı için:
-
-```json
-[]
-```
-
-Sonuçlar rezervasyon tarihine göre artan sırada döner.
+Yanıt rezervasyon tarihine göre artan sıralı bir dizidir. İptal edilen kayıtlar kullanıcıya dönmez.
+Her rezervasyonda ilgili masanın aktif ekipmanları `equipments` dizisinde yer alır.
 
 ### 7.3 Rezervasyon güncelleme
 
 ```http
 PATCH /reservations/:id
-Authorization: Bearer <accessToken>
 ```
 
-Yalnız masa:
+Yalnız tarih değişikliği:
 
 ```json
 {
-  "tableNumber": 15
+  "reservationDate": "2026-08-11"
 }
 ```
 
-Yalnız tarih:
+Masa veya ofis değişikliği:
 
 ```json
 {
-  "reservationDate": "2026-08-02"
+  "officeId": "<office-uuid>",
+  "tableNumber": 8
 }
 ```
 
-Her iki alan:
+Masa değiştirilirken `officeId` ve `tableNumber` birlikte gönderilmelidir. Başarılı işlem mevcut rezervasyonun ID değerini korur.
+Güncelleme yanıtındaki `equipments` dizisi yeni seçilen masanın aktif ekipmanlarını içerir.
 
-```json
-{
-  "tableNumber": 15,
-  "reservationDate": "2026-08-02"
-}
-```
-
-Başarılı yanıt — `200 OK`: güncellenmiş `Reservation`
-
-Hatalar:
-
-| HTTP | Açıklama |
-|---:|---|
-| `400` | UUID, tarih veya masa numarası geçersiz |
-| `401` | JWT problemi |
-| `403` | Rezervasyon başka kullanıcıya ait |
-| `404` | Rezervasyon veya masa bulunamadı |
-| `409` | Yeni masa/tarih dolu veya kullanıcının yeni tarihte başka rezervasyonu var |
-
-### 7.4 Rezervasyon silme
+### 7.4 Rezervasyon iptali
 
 ```http
 DELETE /reservations/:id
+```
+
+Başarılı yanıt `204 No Content` döner. Frontend bu yanıtı JSON olarak ayrıştırmamalıdır.
+
+## 8. Kullanıcı etkinlik API’si
+
+Bu bölümdeki bütün endpoint’ler Bearer JWT ve aktif kullanıcı gerektirir.
+
+### 8.1 Etkinlikleri listeleme
+
+```http
+GET /events
+GET /events?scope=UPCOMING
+GET /events?scope=PAST
+GET /events?scope=ALL
+```
+
+Varsayılan değer `UPCOMING`’dir.
+
+```json
+[
+  {
+    "id": "<event-uuid>",
+    "title": "TypeScript Workshop",
+    "description": "Practical TypeScript workshop.",
+    "startsAt": "2026-09-15T06:00:00.000Z",
+    "endsAt": "2026-09-15T14:00:00.000Z",
+    "location": "ITU ARI 3 Conference Hall",
+    "createdAt": "2026-08-05T10:00:00.000Z",
+    "updatedAt": "2026-08-05T10:00:00.000Z",
+    "ratingSummary": {
+      "average": 4.5,
+      "count": 8
+    }
+  }
+]
+```
+
+Değerlendirme yoksa `average: null` ve `count: 0` döner.
+
+### 8.2 Etkinlik detayı
+
+```http
+GET /events/:id
+```
+
+Liste alanlarına ek olarak aktif değerlendirmeler döner:
+
+```json
+{
+  "id": "<event-uuid>",
+  "title": "TypeScript Workshop",
+  "description": "Practical TypeScript workshop.",
+  "startsAt": "2026-09-15T06:00:00.000Z",
+  "endsAt": "2026-09-15T14:00:00.000Z",
+  "location": "ITU ARI 3 Conference Hall",
+  "createdAt": "2026-08-05T10:00:00.000Z",
+  "updatedAt": "2026-08-05T10:00:00.000Z",
+  "ratingSummary": {
+    "average": 5,
+    "count": 1
+  },
+  "reviews": [
+    {
+      "id": "<review-uuid>",
+      "rating": 5,
+      "comment": "Very useful.",
+      "user": {
+        "id": "<user-uuid>",
+        "fullName": "Ayşe Yılmaz"
+      },
+      "createdAt": "2026-09-16T10:00:00.000Z",
+      "updatedAt": "2026-09-16T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+### 8.3 Etkinlik önerisi gönderme
+
+```http
+POST /events/suggestions
+```
+
+```json
+{
+  "suggestionText": "A practical TypeScript workshop would be useful."
+}
+```
+
+```json
+{
+  "message": "Your event suggestion has been submitted successfully."
+}
+```
+
+Kullanıcı öneri geçmişini listeleyemez. Aynı kullanıcının aynı metinli bekleyen önerisi `409 Conflict` döner.
+
+### 8.4 Değerlendirme oluşturma
+
+```http
+POST /events/:id/reviews
+```
+
+```json
+{
+  "rating": 5,
+  "comment": "Very useful event."
+}
+```
+
+- `rating` zorunlu ve 1–5 arasında tam sayıdır.
+- `comment` isteğe bağlıdır ve `null` olabilir.
+- Yalnız etkinlik bittikten sonra değerlendirme yapılabilir.
+- Kullanıcı aynı etkinlikte yalnız bir aktif değerlendirmeye sahip olabilir.
+
+### 8.5 Kendi değerlendirmesini güncelleme
+
+```http
+PATCH /events/:id/reviews/me
+```
+
+```json
+{
+  "rating": 4,
+  "comment": "Updated review."
+}
+```
+
+Alanlardan en az biri gönderilmelidir.
+
+### 8.6 Kendi değerlendirmesini silme
+
+```http
+DELETE /events/:id/reviews/me
+```
+
+```json
+{
+  "message": "Your event review has been deleted successfully."
+}
+```
+
+Silme soft-delete işlemidir. Kullanıcı daha sonra yeniden değerlendirme oluşturabilir.
+
+## 9. Bildirimler, ekipmanlar ve kullanıcı atamaları
+
+### 9.1 Bildirimler
+
+```http
+GET /notifications/me
+PATCH /notifications/:id/read
+```
+
+Bildirim örneği:
+
+```json
+{
+  "id": "<notification-uuid>",
+  "userId": "<user-uuid>",
+  "type": "EVENT_SUGGESTION_ACCEPTED",
+  "title": "Event suggestion accepted",
+  "message": "Your event suggestion was accepted.",
+  "isRead": false,
+  "relatedEntityType": "Event",
+  "relatedEntityId": "<event-uuid>",
+  "createdAt": "2026-08-05T10:00:00.000Z",
+  "readAt": null
+}
+```
+
+Okundu işaretleme yanıtı:
+
+```json
+{
+  "message": "The notification has been marked as read."
+}
+```
+
+### 9.2 Ekipman kataloğu
+
+```http
+GET /equipments
 Authorization: Bearer <accessToken>
 ```
 
-Başarılı yanıt — `204 No Content`
+```json
+{
+  "equipments": [
+    {
+      "id": "<equipment-uuid>",
+      "code": "MONITOR",
+      "name": "Monitor"
+    }
+  ]
+}
+```
 
-Yanıt gövdesi yoktur. İstemci `204` yanıtında JSON ayrıştırmaya çalışmamalıdır.
+### 9.3 Kullanıcının masa atamaları
 
-Silme tamamlandığında masa aynı tarih için yeniden kullanılabilir. Rezervasyonunu silen kullanıcı da aynı gün tekrar rezervasyon oluşturabilir.
+```http
+GET /table-assignments/me
+Authorization: Bearer <accessToken>
+```
 
-Hatalar:
+### 9.4 Kullanıcının ceza geçmişi
 
-| HTTP | Açıklama |
-|---:|---|
-| `400` | Rezervasyon kimliği UUID değil |
-| `401` | JWT problemi |
-| `403` | Rezervasyon başka kullanıcıya ait |
-| `404` | Rezervasyon bulunamadı veya daha önce silindi |
+```http
+GET /restrictions/me
+Authorization: Bearer <accessToken>
+```
 
-## 8. Hata yanıtları
+## 10. Admin API
 
-İş kuralı hatası:
+Bu bölümdeki bütün endpoint’ler Bearer JWT ve `ADMIN` rolü gerektirir.
+
+### 10.1 Kullanıcı yönetimi
+
+```http
+GET   /admin/users?includeInactive=true
+PATCH /admin/users/:id/status
+PATCH /admin/users/:id/role
+```
 
 ```json
 {
-  "message": "Seçilen masa bu tarihte zaten rezerve edilmiş.",
-  "error": "Conflict",
-  "statusCode": 409
+  "isActive": false
 }
 ```
-
-Birden fazla doğrulama hatası:
 
 ```json
 {
-  "message": [
-    "email şirket e-posta uzantısını kullanmalıdır."
-  ],
-  "error": "Bad Request",
-  "statusCode": 400
+  "role": "ADMIN"
 }
 ```
 
-İstemci `message` alanını hem `string` hem `string[]` olarak ele almalıdır.
+### 10.2 Rezervasyonları filtreleme
 
-### HTTP durum kodları
+```http
+GET /admin/reservations
+```
 
-| Kod | Anlam |
-|---:|---|
-| `200` | Başarılı okuma veya güncelleme |
-| `201` | Kaynak başarıyla oluşturuldu |
-| `204` | Başarılı silme; gövde yok |
-| `400` | İstek veya alan doğrulaması başarısız |
-| `401` | Kimlik doğrulama başarısız |
-| `403` | Kaynak başka kullanıcıya ait |
-| `404` | Kaynak bulunamadı |
-| `409` | Benzersizlik veya rezervasyon çakışması |
+Desteklenen query parametreleri:
 
-## 9. İstemci entegrasyon önerileri
+| Parametre | Biçim |
+|---|---|
+| `officeId` | UUID |
+| `city` | String |
+| `userId` | UUID |
+| `startsOn` | `YYYY-MM-DD` |
+| `endsOn` | `YYYY-MM-DD` |
+| `status` | `ACTIVE`, `CANCELLED`, `ALL` |
 
-1. API base URL’yi ortam değişkeninden okuyun.
-2. Kayıt veya login yanıtındaki JWT’yi güvenli istemci state’inde saklayın.
-3. Korumalı isteklere Bearer başlığını otomatik ekleyin.
-4. Uygulama açılışında `GET /auth/me` ile saklanmış oturumu doğrulayın.
-5. `401` yanıtında yerel oturumu temizleyip kullanıcıyı login akışına yönlendirin.
-6. Tarih seçildiğinde `GET /tables/available` isteğini yenileyin.
-7. `409` sonrasında kullanıcıya backend mesajını gösterip masa listesini yeniden alın.
-8. Kullanıcının rezervasyonlarını `GET /reservations/me` üzerinden yönetin.
-9. Silme işleminde `204` yanıt gövdesini ayrıştırmayın.
-10. Profil formunda e-postayı salt okunur gösterin ve güncelleme isteğine eklemeyin.
+Örnek:
 
-Basit hata mesajı dönüştürücüsü:
+```http
+GET /admin/reservations?officeId=<uuid>&startsOn=2026-08-01&endsOn=2026-08-31&status=ACTIVE
+```
 
-```ts
-function getErrorMessage(error: ApiError): string {
-  return Array.isArray(error.message)
-    ? error.message.join("\n")
-    : error.message;
+### 10.3 Admin rezervasyon işlemleri
+
+```http
+POST   /admin/reservations/preview
+POST   /admin/reservations
+POST   /admin/reservations/:id/preview-update
+PATCH  /admin/reservations/:id
+DELETE /admin/reservations/:id
+```
+
+Oluşturma ve önizleme gövdesi:
+
+```json
+{
+  "userId": "<user-uuid>",
+  "officeId": "<office-uuid>",
+  "tableNumber": 12,
+  "reservationDate": "2026-08-10",
+  "confirmOverride": false,
+  "reason": "Operational requirement",
+  "replacementTableNumber": 15
 }
 ```
 
-## 10. Güvenlik notları
+`replacementTableNumber` isteğe bağlıdır ve seçilen `officeId` içindeki masayı ifade eder. Replacement masa farklı bir ofisten seçilemez. Preview yanıtı etkilenecek rezervasyon ve atamaları gösterir; frontend onaydan sonra aynı isteği `confirmOverride: true` ile gönderir.
 
-- `.env`, JWT secret, veritabanı parolası ve `passwordHash` istemciye veya kaynak kontrol sistemine gönderilmemelidir.
-- Parolalar API yanıtlarında hiçbir zaman dönmez.
-- İstemci, JWT içeriğini yetkilendirme kararı için güvenilir kaynak kabul etmemelidir; nihai yetki kontrolü backend tarafından yapılır.
-- Üretim ortamında yalnız HTTPS kullanılmalıdır.
-- CORS origin değeri yalnız güvenilen istemci adreslerini içermelidir.
+### 10.4 Tarih aralıklı masa atamaları
 
-## 11. Kapsam dışı özellikler
+```http
+GET    /admin/table-assignments?includeRevoked=true
+POST   /admin/table-assignments/preview
+POST   /admin/table-assignments
+PATCH  /admin/table-assignments/:id/end-date
+DELETE /admin/table-assignments/:id
+```
 
-Aşağıdaki özellikler API’nin mevcut sürümünde bulunmaz:
+```json
+{
+  "userId": "<user-uuid>",
+  "officeId": "<office-uuid>",
+  "tableNumber": 12,
+  "startsOn": "2026-08-10",
+  "endsOn": "2026-09-10",
+  "confirmOverride": false,
+  "reason": "Team assignment"
+}
+```
+
+`endsOn: null` süresiz atama anlamına gelir.
+
+### 10.5 Kullanıcı cezaları
+
+```http
+GET    /admin/restrictions?includeRevoked=true
+POST   /admin/restrictions/preview
+POST   /admin/restrictions
+PATCH  /admin/restrictions/:id
+DELETE /admin/restrictions/:id
+```
+
+```json
+{
+  "userId": "<user-uuid>",
+  "startsOn": "2026-08-10",
+  "endsOn": "2026-08-20",
+  "reason": "Policy violation",
+  "confirmImpact": false
+}
+```
+
+Preview sonrasında işlem kabul edilirse `confirmImpact: true` gönderilir.
+
+### 10.6 Admin Floor Plan
+
+```http
+GET /admin/tables/statuses?officeId=<office-uuid>&date=2026-08-10
+```
+
+Admin durumları:
+
+- `available`
+- `reserved`
+- `admin_reserved`
+- `assigned`
+
+Yanıt normal masa bilgilerine ek olarak `occupant`, `reservationId`, `assignmentId` ve `underlyingAssignment` alanlarını içerir.
+
+### 10.7 Ekipman yönetimi
+
+```http
+POST   /admin/equipments
+DELETE /admin/equipments/:id
+PUT    /admin/tables/:id/equipments
+```
+
+Yeni ekipman:
+
+```json
+{
+  "name": "Standing Desk Converter",
+  "code": "STANDING_DESK_CONVERTER"
+}
+```
+
+Masa ekipmanlarının eksiksiz yeni listesi:
+
+```json
+{
+  "officeId": "<office-uuid>",
+  "equipmentIds": ["<equipment-uuid-1>", "<equipment-uuid-2>"]
+}
+```
+
+Boş `equipmentIds` dizisi masadaki bütün ekipmanları kaldırır.
+
+Ekipman türünü silme:
+
+```http
+DELETE /admin/equipments/<equipment-uuid>
+Authorization: Bearer <admin-access-token>
+```
+
+```json
+{
+  "message": "The equipment has been deleted successfully."
+}
+```
+
+Silme işlemi ekipmanı fiziksel olarak kaldırmaz; `isActive` alanını `false`
+yapar, ekipmanı bağlı olduğu bütün masalardan kaldırır ve işlemi audit log’a
+kaydeder. Silinmiş bir ekipmanın tekrar silinmesi `409 Conflict`, bulunamayan
+bir kimlik gönderilmesi `404 Not Found` döndürür.
+
+### 10.8 Admin etkinlik yönetimi
+
+```http
+GET    /admin/events
+POST   /admin/events
+PATCH  /admin/events/:id
+DELETE /admin/events/:id
+```
+
+Etkinlik oluşturma:
+
+```json
+{
+  "title": "TypeScript Workshop",
+  "description": "Practical TypeScript workshop.",
+  "startsAt": "2026-09-15T09:00:00+03:00",
+  "endsAt": "2026-09-15T17:00:00+03:00",
+  "location": "ITU ARI 3 Conference Hall"
+}
+```
+
+Etkinlik doğrudan yayınlanır; draft durumu bulunmaz. İptal gövdesi:
+
+```json
+{
+  "reason": "The event has been postponed."
+}
+```
+
+### 10.9 Admin etkinlik önerileri
+
+```http
+GET  /admin/event-suggestions
+POST /admin/event-suggestions/:id/accept
+POST /admin/event-suggestions/:id/reject
+```
+
+Kabul isteği gerçek etkinliğin tüm alanlarını içerir. Reddetme isteği:
+
+```json
+{
+  "reason": "The suggestion is outside the current event plan."
+}
+```
+
+Öneri durumları `PENDING`, `ACCEPTED` ve `REJECTED` değerleridir. Kabul veya ret sonrasında öneriyi yapan kullanıcıya bildirim oluşturulur.
+
+### 10.10 Uygunsuz değerlendirme silme
+
+```http
+DELETE /admin/event-reviews/:reviewId
+```
+
+Buradaki kimlik `eventId` değil değerlendirme kaydının `reviewId` değeridir.
+
+### 10.11 Audit log
+
+```http
+GET /admin/audit-logs
+```
+
+Admin tarafından gerçekleştirilen yönetim işlemleri denetim geçmişinde tutulur.
+
+## 11. Öncelik sırası
+
+Bir tarih ve masa değerlendirilirken temel öncelik sırası:
+
+1. Kullanıcının aktifliği
+2. Kullanıcının ilgili tarihteki cezası
+3. Admin günlük rezervasyonu
+4. Tarih aralıklı masa ataması
+5. Normal kullanıcı rezervasyonu
+6. Boş masa
+
+## 12. Frontend entegrasyon akışı
+
+1. Uygulama açılışında `GET /offices` çağrılır.
+2. Kullanıcının seçtiği `officeId`, floor plan isteklerinde kullanılır.
+3. Oturum varsa `GET /tables/statuses`, oturum yoksa `GET /tables/available` çağrılır.
+4. Rezervasyon oluşturma ve masa değiştirme isteklerinde `officeId` gönderilir.
+5. `GET /reservations/me` yanıtındaki `office` bilgisi rezervasyon kartında gösterilir.
+6. Etkinlik listesi için `GET /events?scope=UPCOMING`, geçmiş için `scope=PAST` kullanılır.
+7. Etkinlik bittikten sonra değerlendirme formu etkinleştirilir.
+8. Admin rezervasyon listesi `officeId`, şehir, tarih, kullanıcı ve durumla filtrelenebilir.
+9. `401` yanıtında yerel oturum temizlenip kullanıcı login ekranına yönlendirilir.
+10. `409` sonrasında backend mesajı gösterilip ilgili masa veya liste verisi yeniden alınır.
+
+## 13. Kapsam dışı özellikler
 
 - E-posta değiştirme
-- Parola değiştirme veya sıfırlama
+- Şifre sıfırlama
 - Refresh token
 - Server-side logout veya token iptali
-- Yönetici paneli
 - Rezervasyon kodu
-- Başka kullanıcıların rezervasyonlarını listeleme
+- Etkinlik katılım takibi
+- Etkinlik participant count
+- Etkinlik draft durumu
+- Kullanıcının gönderdiği etkinlik önerilerini sonradan listelemesi
 
-İstemciler bu özellikler için endpoint çağrısı yapmamalıdır.
+## 14. Güvenlik notları
+
+- `.env`, JWT secret, veritabanı parolası ve `passwordHash` istemciye gönderilmemelidir.
+- Parolalar hiçbir API yanıtında dönmez.
+- Frontend’de role göre görünürlük sağlansa bile nihai yetkilendirme backend tarafından yapılır.
+- Üretim ortamında HTTPS ve güvenilir CORS origin değerleri kullanılmalıdır.

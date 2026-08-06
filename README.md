@@ -8,13 +8,22 @@ Frontend entegrasyon sözleşmesi: [API_DOCUMENTATION.md](API_DOCUMENTATION.md)
 
 - Sistemde 1–32 arasında 32 masa bulunur.
 - Yalnız `COMPANY_EMAIL_DOMAIN` ile belirtilen şirket e-posta uzantısı kabul edilir.
-- Bir kullanıcı aynı gün yalnız bir masa ayırabilir.
-- Bir masa aynı gün yalnız bir kullanıcı tarafından ayrılabilir.
+- Bir kullanıcı aynı gün yalnız bir aktif masa ayırabilir.
+- Bir masa aynı gün yalnız bir aktif kullanıcı tarafından ayrılabilir.
 - Aynı anda gelen çakışan isteklerden yalnız veritabanına ilk ulaşan başarılı olur; diğeri `409 Conflict` alır.
 - Rezervasyon bugün ile `MAX_RESERVATION_DAYS_AHEAD` gün sonrası arasına yapılabilir.
-- Kullanıcı yalnız kendi rezervasyonlarını görebilir, değiştirebilir ve silebilir.
-- Rezervasyon silinince masa aynı gün için yeniden alınabilir.
+- Kullanıcı yalnız kendi aktif rezervasyonlarını görebilir.
+- Bugünkü ve gelecekteki aktif rezervasyonların tarihi ve masası değiştirilebilir.
+- Rezervasyonlar fiziksel olarak silinmez; iptal bilgisiyle geçmişte saklanır.
+- Rezervasyon iptal edilince masa aynı gün için yeniden alınabilir.
 - Rezervasyon kodu veya yönetim token’ı kullanılmaz; sahiplik JWT’deki kullanıcı kimliğiyle belirlenir.
+- Kullanıcı rolleri `USER` ve `ADMIN` olarak ayrılır; admin yetkisi ayrı hesap yerine kullanıcı rolüyle yönetilir.
+- Kullanıcılar fiziksel olarak silinmez; `isActive = false` ile pasifleştirilir ve geçmiş kayıtları korunur.
+- Ceza, rezervasyon ve masa ataması işlemlerinden önce gelir. Cezalı kullanıcı için admin dahil yeni kayıt oluşturulamaz.
+- Admin günlük rezervasyonu, tarih aralıklı masa atamasını yalnız ilgili gün için geçici olarak ezer.
+- Tarih aralıklı masa ataması normal kullanıcı rezervasyonundan önceliklidir.
+- Masalarda admin tarafından yönetilen monitör, dock station ve benzeri ekipmanlar bulunabilir.
+- Admin işlemleri audit log, kullanıcıya yönelik değişiklikler ise veritabanı bildirimleri olarak saklanır.
 
 ## Kurulum
 
@@ -60,8 +69,8 @@ Authorization: Bearer <accessToken>
 {
   "fullName": "Ayşe Yılmaz",
   "email": "ayse.yilmaz@eteration.com",
-  "phone": "+905551112233",
-  "password": "gucluParola1"
+  "phone": "05061234215",
+  "password": "GucluParola1!"
 }
 ```
 
@@ -74,7 +83,7 @@ Başarılı yanıt (`201`):
     "id": "<uuid>",
     "fullName": "Ayşe Yılmaz",
     "email": "ayse.yilmaz@eteration.com",
-    "phone": "+905551112233"
+    "phone": "05061234215"
   }
 }
 ```
@@ -86,7 +95,7 @@ Başarılı yanıt (`201`):
 ```json
 {
   "email": "ayse.yilmaz@eteration.com",
-  "password": "gucluParola1"
+  "password": "GucluParola1!"
 }
 ```
 
@@ -95,15 +104,40 @@ Başarılı yanıt `200` durum koduyla kayıt yanıtıyla aynı yapıdadır.
 ### Profil ve masalar
 
 - `GET /auth/me` — JWT zorunlu, giriş yapan kullanıcının profilini döndürür.
-- `PATCH /auth/me` — JWT zorunlu, kullanıcının yalnız adını ve/veya telefonunu günceller; e-posta değiştirilemez.
-- `GET /tables/available?date=YYYY-MM-DD` — `{ "date": "YYYY-MM-DD", "tables": [1, 2, 3] }` biçiminde boş masa numaralarını döndürür.
+- `PATCH /auth/me` — JWT zorunlu; ad, telefon, tercih edilen ofis ve `LIGHT`/`DARK` tema tercihini günceller. E-posta değiştirilemez.
+- `PATCH /auth/me/password` — JWT zorunlu, mevcut şifreyi doğruladıktan sonra güçlü yeni şifreyi kaydeder ve başarı mesajı döndürür.
+- `GET /tables/available?officeId=<uuid>&date=YYYY-MM-DD` — seçilen ofisin masa sayısını ve boş masa numaralarını döndürür.
+- `GET /tables/statuses?officeId=<uuid>&date=YYYY-MM-DD` — JWT zorunlu, seçilen ofisin masalarını `available`, `reserved` veya `mine` durumuyla döndürür.
+- `GET /tables/:id` — JWT zorunlu, masa kodunu ve ekipmanlarını döndürür.
+- `GET /equipments` — JWT zorunlu, seçilebilir aktif ekipman kataloğunu döndürür.
+- `GET /table-assignments/me` — kullanıcının aktif tarih aralıklı masa atamalarını döndürür.
+- `GET /restrictions/me` — kullanıcının aktif ve geçmiş ceza kayıtlarını döndürür.
+- `GET /notifications/me` — kullanıcının veritabanında saklanan bildirimlerini döndürür.
+
+### Admin API
+
+Admin endpoint’leri `Authorization: Bearer <accessToken>` ve `ADMIN` rolü gerektirir:
+
+Admin dolu bir masayı başka kullanıcıya verirken `replacementTableNumber` ile mevcut kullanıcıyı boş bir masaya taşıyabilir. Taşınma preview aşamasında açıkça gösterilir ve ana admin rezervasyonu iptal edildiğinde bağlı replacement rezervasyonu da otomatik olarak soft-cancel edilir.
+
+- `/admin/users` — aktif/pasif kullanıcıları listeleme, rol ve durum değiştirme.
+- `/admin/reservations` — tüm rezervasyonları görme, önizleme, oluşturma, güncelleme ve soft-cancel.
+- `/admin/table-assignments` — tarih aralıklı masa atamalarını yönetme.
+- `/admin/restrictions` — kullanıcı cezalarını önizleme ve yönetme.
+- `/admin/tables/statuses` — `admin_reserved` ve `assigned` ayrımıyla ayrıntılı masa görünümü.
+- `PUT /admin/tables/:id/equipments` — masanın checkbox seçimlerinden gelen ekipman listesini değiştirme.
+- `POST /admin/equipments` — yeni ekipman türü oluşturma; tek ve çift monitör aynı masaya birlikte atanamaz.
+- `DELETE /admin/equipments/:id` — ekipman türünü pasifleştirir ve masa bağlantılarını kaldırır.
+- `/admin/audit-logs` — yönetici işlem geçmişini görüntüleme.
+
+Çakışmalı admin işlemlerinde önce `.../preview` endpoint’i çağrılır. Önizleme etkilenecek rezervasyonları ve atamaları döndürür; işlem ancak açık onay alanıyla gerçekleştirilir.
 
 ### Rezervasyonlar
 
 - `POST /reservations` — JWT zorunlu.
-- `GET /reservations/me` — JWT zorunlu, yalnız giriş yapan kullanıcının rezervasyonlarını döndürür.
-- `PATCH /reservations/:id` — JWT zorunlu, yalnız kullanıcının kendi rezervasyonu.
-- `DELETE /reservations/:id` — JWT zorunlu, başarıda gövdesiz `204`.
+- `GET /reservations/me` — JWT zorunlu, yalnız giriş yapan kullanıcının aktif rezervasyonlarını döndürür.
+- `PATCH /reservations/:id` — JWT zorunlu, kullanıcının aktif rezervasyonunun tarihini ve/veya masasını günceller.
+- `DELETE /reservations/:id` — JWT zorunlu, rezervasyonu soft-cancel eder ve başarıda gövdesiz `204` döndürür.
 
 Oluşturma gövdesi:
 
@@ -125,16 +159,18 @@ Oluşturma ve güncelleme yanıtı:
 ```
 
 Güncellemede `tableNumber` ve `reservationDate` alanlarından biri veya ikisi gönderilebilir.
+Güncelleme çakışırsa `409 Conflict` ve `Update failed.` mesajı döner; mevcut rezervasyon değişmeden kalır.
 
 Başlıca hata durumları:
 
-- `400 Bad Request`: DTO, UUID veya tarih doğrulaması başarısız.
-- `401 Unauthorized`: JWT yok, geçersiz, süresi dolmuş veya kullanıcı artık mevcut değil.
-- `403 Forbidden`: rezervasyon başka kullanıcıya ait.
-- `404 Not Found`: masa veya rezervasyon bulunamadı.
-- `409 Conflict`: e-posta zaten kayıtlı, masa/tarih dolu veya kullanıcı aynı gün başka rezervasyona sahip.
+- `400`: İstek, UUID veya tarih doğrulaması başarısız.
+- `401`: Oturum bilgisi yok, geçersiz, süresi dolmuş veya kullanıcı artık mevcut değil.
+- `403`: Rezervasyon başka kullanıcıya ait.
+- `404`: Masa veya rezervasyon bulunamadı.
+- `409`: E-posta zaten kayıtlı, masa/tarih dolu veya kullanıcı aynı gün başka rezervasyona sahip.
 
-Frontend, kullanıcıya göstereceği metin için JSON yanıttaki `message` alanını kullanabilir.
+Hata yanıtındaki `message` alanı her zaman tek bir İngilizce metindir. Frontend
+bu mesajı doğrudan kullanıcıya gösterebilir.
 
 ## Test ve kalite komutları
 

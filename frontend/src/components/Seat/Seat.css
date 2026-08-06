@@ -1,6 +1,6 @@
 .seat {
-  width: 70px;
-  height: 70px;
+  width: 50px;
+  height: 50px;
   border: none;
   border-radius: 16px;
   background: #777978;
@@ -13,19 +13,29 @@
     transform:translateY(-2px);
 }
 
+.seat:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+  transform: none;
+}
+
+.seat:disabled:hover {
+  transform: none;
+}
+
 .available {
-  background: #777978;
+  background: #0ae90a;
 }
 
 .available:hover {
-  background: #5a5a5a;
+  background: #02b302;
 }
 .reserved {
-  background: #ec2b2b;
+  background: #908e8e;
   cursor: not-allowed;
 }
 .reserved:hover {
-  background: #bb0808;
+  background: #5a5959;
 }
 .seat:hover {
   transform: scale(1.05);
@@ -35,5 +45,13 @@
   
 }
 .selected {
+  background: #3f7bea;
+}
+
+.seat.admin-reserved {
+  background: #8b5cf6;
+}
+
+.seat.assigned {
   background: #3f7bea;
 }

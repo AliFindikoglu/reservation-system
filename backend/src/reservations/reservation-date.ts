@@ -7,7 +7,7 @@ function getMaximumReservationDaysAhead(): number {
   return Number.isInteger(value) && value >= 0 ? value : 30;
 }
 
-function getTodayInBusinessTimeZone(): string {
+export function getTodayInBusinessTimeZone(): string {
   const formatter = new Intl.DateTimeFormat("en-US", {
     timeZone: process.env.BUSINESS_TIME_ZONE ?? "Europe/Istanbul",
     year: "numeric",
@@ -21,24 +21,24 @@ function getTodayInBusinessTimeZone(): string {
   return `${year}-${month}-${day}`;
 }
 
-export function parseReservationDate(value: string): Date {
-  if (!DATE_PATTERN.test(value)) {
-    throw new BadRequestException("Tarih YYYY-MM-DD formatında olmalıdır.");
+export function assertReservationCanBeUpdated(date: Date): void {
+  if (date.toISOString().slice(0, 10) < getTodayInBusinessTimeZone()) {
+    throw new BadRequestException("Past reservations cannot be updated.");
   }
+}
 
-  const date = new Date(`${value}T00:00:00.000Z`);
-  if (
-    Number.isNaN(date.getTime()) ||
-    date.toISOString().slice(0, 10) !== value
-  ) {
-    throw new BadRequestException("Geçerli bir tarih girilmelidir.");
+export function assertReservationCanBeCancelled(date: Date): void {
+  if (date.toISOString().slice(0, 10) < getTodayInBusinessTimeZone()) {
+    throw new BadRequestException("Past reservations cannot be cancelled.");
   }
+}
+
+export function parseReservationDate(value: string): Date {
+  const date = parseDateOnly(value, "reservation date");
 
   const today = getTodayInBusinessTimeZone();
   if (value < today) {
-    throw new BadRequestException(
-      "Geçmiş bir tarih için rezervasyon yapılamaz.",
-    );
+    throw new BadRequestException("Please select today or a future date.");
   }
 
   const maximumDate = new Date(`${today}T00:00:00.000Z`);
@@ -47,9 +47,30 @@ export function parseReservationDate(value: string): Date {
   );
   if (date > maximumDate) {
     throw new BadRequestException(
-      `En fazla ${getMaximumReservationDaysAhead()} gün sonrası için rezervasyon yapılabilir.`,
+      `Please select a date within ${getMaximumReservationDaysAhead()} days from today.`,
     );
   }
 
   return date;
+}
+
+export function parseDateOnly(value: string, fieldName = "date"): Date {
+  if (!DATE_PATTERN.test(value)) {
+    throw new BadRequestException(
+      `Please enter the ${fieldName} in YYYY-MM-DD format.`,
+    );
+  }
+
+  const date = new Date(`${value}T00:00:00.000Z`);
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.toISOString().slice(0, 10) !== value
+  ) {
+    throw new BadRequestException(`Please enter a valid ${fieldName}.`);
+  }
+  return date;
+}
+
+export function formatDateOnly(value: Date): string {
+  return value.toISOString().slice(0, 10);
 }

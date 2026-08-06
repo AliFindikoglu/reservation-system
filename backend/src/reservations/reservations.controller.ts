@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -11,7 +12,9 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiConflictResponse,
   ApiCreatedResponse,
   ApiForbiddenResponse,
   ApiNoContentResponse,
@@ -37,11 +40,11 @@ export class ReservationsController {
 
   @Post()
   @ApiCreatedResponse({
-    description: "Giriş yapan kullanıcı için rezervasyon oluşturulur.",
+    description: "Creates a reservation for the authenticated user.",
     type: ReservationResponseDto,
   })
   @ApiUnauthorizedResponse({
-    description: "JWT eksik, geçersiz veya süresi dolmuş.",
+    description: "The session is missing, invalid, or expired.",
   })
   create(
     @CurrentUser() user: AuthenticatedUser,
@@ -52,7 +55,7 @@ export class ReservationsController {
 
   @Get("me")
   @ApiOkResponse({
-    description: "Giriş yapan kullanıcının rezervasyonları.",
+    description: "Returns the authenticated user's reservations.",
     type: ReservationResponseDto,
     isArray: true,
   })
@@ -62,15 +65,31 @@ export class ReservationsController {
 
   @Patch(":id")
   @ApiOkResponse({
-    description: "Kullanıcının kendi rezervasyonu güncellenir.",
+    description: "Updates the authenticated user's reservation.",
     type: ReservationResponseDto,
   })
   @ApiForbiddenResponse({
-    description: "Rezervasyon başka bir kullanıcıya ait.",
+    description: "The reservation belongs to another user.",
   })
-  @ApiNotFoundResponse({ description: "Rezervasyon bulunamadı." })
+  @ApiBadRequestResponse({
+    description:
+      "The reservation is in the past, cancelled, or the request is invalid.",
+  })
+  @ApiConflictResponse({
+    description: "The update conflicts with an active reservation.",
+  })
+  @ApiNotFoundResponse({ description: "Reservation not found." })
   update(
-    @Param("id", new ParseUUIDPipe()) id: string,
+    @Param(
+      "id",
+      new ParseUUIDPipe({
+        exceptionFactory: () =>
+          new BadRequestException(
+            "Please enter a valid reservation ID.",
+          ),
+      }),
+    )
+    id: string,
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpdateReservationDto,
   ) {
@@ -80,14 +99,27 @@ export class ReservationsController {
   @Delete(":id")
   @HttpCode(204)
   @ApiNoContentResponse({
-    description: "Rezervasyon silinir ve masa tekrar kullanılabilir olur.",
+    description:
+      "Cancels the reservation and makes the table available again.",
+  })
+  @ApiBadRequestResponse({
+    description: "The reservation is in the past or already cancelled.",
   })
   @ApiForbiddenResponse({
-    description: "Rezervasyon başka bir kullanıcıya ait.",
+    description: "The reservation belongs to another user.",
   })
-  @ApiNotFoundResponse({ description: "Rezervasyon bulunamadı." })
+  @ApiNotFoundResponse({ description: "Reservation not found." })
   async remove(
-    @Param("id", new ParseUUIDPipe()) id: string,
+    @Param(
+      "id",
+      new ParseUUIDPipe({
+        exceptionFactory: () =>
+          new BadRequestException(
+            "Please enter a valid reservation ID.",
+          ),
+      }),
+    )
+    id: string,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<void> {
     await this.reservationsService.remove(id, user.userId);

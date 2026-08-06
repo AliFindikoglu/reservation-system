@@ -1,42 +1,160 @@
-.header{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-
-    margin-bottom:40px;
+:root {
+  --admin-orange: #ff6b00;
+  --admin-orange-soft: #fff3e8;
+  --admin-ink: #18212f;
+  --admin-muted: #697386;
+  --admin-line: #e7e9ee;
 }
 
-.header h1{
-    margin:0;
-    font-size:40px;
-    font-weight:700;
+.topbar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background-color: #ffffff;
+  box-sizing: border-box;
+  padding: 0 24px;
+  height: 120px !important;
 }
 
-.header p{
-    margin-top:8px;
-    color:#64748b;
+.header-left-group {
+  display: flex;
+  align-items: center;
+  gap: 20px;
 }
 
-.header-left{
-    display:flex;
-    flex-direction:column;
-    gap:8px;
+.admin-title-box .admin-eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  margin: 0 0 4px 0;
 }
 
-.header-left h1{
-    font-size:34px;
-    font-weight:700;
-    color:#222;
-
-    margin:0;
+.header-left h1 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
 }
 
-.header-left p{
-    color:#666;
-    margin:0;
+.header-left p {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 4px 0 0 0;
 }
 
-.header-right{
-    display:flex;
-    align-items:center;
+.header-account-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #3b82f6;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.user-info-copy {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-info-copy strong {
+  font-size: 14px;
+  color: #1f2937;
+  line-height: 1.2;
+}
+
+.user-info-copy small {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.header-auth-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.header-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.header-btn.primary {
+  background-color: #2563eb;
+  color: #ffffff;
+}
+
+.header-btn.secondary {
+  background-color: #f3f4f6;
+  color: #374151;
+  border-color: #e5e7eb;
+}
+.admin-eyebrow { 
+  margin: 0; 
+  color: var(--admin-orange); 
+  text-transform: uppercase; 
+  letter-spacing: .12em; 
+  font-size: 9px; 
+  font-weight: 850; 
+}
+
+.admin-account { 
+  display: flex; 
+  align-items: center; 
+  gap: 10px; 
+}
+
+.admin-icon-button { 
+  width: 38px; 
+  height: 38px; 
+  border: 1px solid var(--admin-line); 
+  background: #fff; 
+  border-radius: 11px; 
+  display: grid; 
+  place-items: center; 
+  color: #687386; 
+  cursor: pointer; 
+  margin-right: 6px; 
+}
+
+.avatar { 
+  width: 38px; 
+  height: 38px; 
+  display: grid; 
+  place-items: center; 
+  border-radius: 12px; 
+  background: var(--admin-orange-soft); 
+  color: var(--admin-orange); 
+  font-weight: 800; 
+}
+
+.admin-account-copy { 
+  display: flex; 
+  flex-direction: column; 
+  min-width: 130px; 
+}
+
+.admin-account-copy strong { 
+  font-size: 12px; 
+}
+
+.admin-account-copy small { 
+  color: var(--admin-muted); 
+  font-size: 10px; 
+  margin-top: 3px; 
 }

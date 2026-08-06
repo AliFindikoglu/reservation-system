@@ -1,0 +1,66 @@
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --admin-ink: #edf1f7;
+  --admin-muted: #aeb7c6;
+  --admin-line: #343c49;
+  --admin-bg: #11161d;
+  --admin-card: #1b222c;
+  --admin-orange-soft: #382315;
+}
+
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] .home-page,
+:root[data-theme="dark"] .main-content,
+:root[data-theme="dark"] .settings-content,
+:root[data-theme="dark"] .settings-page,
+:root[data-theme="dark"] .my-reservations-page {
+  background: #11161d;
+  color: #edf1f7;
+}
+
+:root[data-theme="dark"] .header-card,
+:root[data-theme="dark"] .sidebar,
+:root[data-theme="dark"] .side-bar,
+:root[data-theme="dark"] .seat-grid-wrapper,
+:root[data-theme="dark"] .office-container,
+:root[data-theme="dark"] .summary-card,
+:root[data-theme="dark"] .settings-card,
+:root[data-theme="dark"] .profile-summary,
+:root[data-theme="dark"] .office-switcher,
+:root[data-theme="dark"] .admin-sidebar,
+:root[data-theme="dark"] .admin-topbar,
+:root[data-theme="dark"] .admin-card,
+:root[data-theme="dark"] .admin-toolbar,
+:root[data-theme="dark"] .admin-modal {
+  background-color: #1b222c !important;
+  color: #edf1f7;
+  border-color: #343c49 !important;
+}
+
+:root[data-theme="dark"] h1,
+:root[data-theme="dark"] h2,
+:root[data-theme="dark"] h3,
+:root[data-theme="dark"] h4,
+:root[data-theme="dark"] strong,
+:root[data-theme="dark"] .office-switcher select,
+:root[data-theme="dark"] .settings-card h3,
+:root[data-theme="dark"] .profile-settings h1 {
+  color: #edf1f7 !important;
+}
+
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea {
+  background: #121820 !important;
+  color: #edf1f7 !important;
+  border-color: #3b4553 !important;
+}
+
+:root[data-theme="dark"] .admin-table th,
+:root[data-theme="dark"] .admin-table td {
+  border-color: #343c49;
+}
+
+:root[data-theme="dark"] .divider {
+  background: #343c49;
+}
