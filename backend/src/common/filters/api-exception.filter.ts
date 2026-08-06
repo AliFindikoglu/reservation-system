@@ -60,7 +60,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
       request.method === "PATCH" &&
       request.path === "/auth/me"
     ) {
-      return "Please update only the full name and phone number fields.";
+      return "Please update only supported profile and preference fields.";
     }
 
     if (

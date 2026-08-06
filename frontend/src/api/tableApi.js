@@ -1,8 +1,8 @@
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
 
-export async function getAvailableTables(date) {
+export async function getAvailableTables(officeId, date) {
   const response = await fetch(
-    `${BASE_URL}/tables/available?date=${date}`
+    `${BASE_URL}/tables/available?officeId=${encodeURIComponent(officeId)}&date=${encodeURIComponent(date)}`
   );
 
   if (!response.ok) {
@@ -12,7 +12,7 @@ export async function getAvailableTables(date) {
   return response.json();
 }
 
-export async function getTableStatuses(date) {
+export async function getTableStatuses(officeId, date) {
   const token = localStorage.getItem("token");
 
   const headers = {};
@@ -22,7 +22,7 @@ export async function getTableStatuses(date) {
   }
 
   const response = await fetch(
-    `${BASE_URL}/tables/statuses?date=${date}`,
+    `${BASE_URL}/tables/statuses?officeId=${encodeURIComponent(officeId)}&date=${encodeURIComponent(date)}`,
     {
       headers,
     }

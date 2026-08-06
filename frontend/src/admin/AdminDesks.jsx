@@ -1,6 +1,7 @@
-import { CalendarDays, MonitorCog, Plus, Save, X } from "lucide-react";
+import { CalendarDays, MonitorCog, Plus, Save, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import Swal from "sweetalert2";
 import { adminApi } from "../api/adminApi";
 import SeatGrid from "../components/SeatGrid/SeatGrid";
 import { ErrorState, LoadingState, Modal, PageHeading } from "./AdminUi";
@@ -32,12 +33,25 @@ function AdminDesks() {
   const [showNewEquipment, setShowNewEquipment] = useState(false);
   const [newEquipment, setNewEquipment] = useState(emptyEquipment);
   const [creatingEquipment, setCreatingEquipment] = useState(false);
+  const [offices, setOffices] = useState([]);
+  const [selectedOfficeId, setSelectedOfficeId] = useState("");
+
+  useEffect(() => {
+    adminApi.getOffices()
+      .then((items) => {
+        setOffices(items);
+        const istanbul = items.find((office) => office.city.toLowerCase() === "istanbul");
+        setSelectedOfficeId((istanbul ?? items[0])?.id ?? "");
+      })
+      .catch((loadError) => setError(loadError.message));
+  }, []);
 
   const load = useCallback(async () => {
+    if (!selectedOfficeId) return;
     setLoading(true); setError("");
     try {
       const [statusData, equipmentData] = await Promise.all([
-        adminApi.getAdminTableStatuses(date),
+        adminApi.getAdminTableStatuses(selectedOfficeId, date),
         adminApi.getEquipments(),
       ]);
       setTables(statusData.tables);
@@ -47,7 +61,7 @@ function AdminDesks() {
     } finally {
       setLoading(false);
     }
-  }, [date]);
+  }, [date, selectedOfficeId]);
 
   useEffect(() => { const timer = setTimeout(load, 0); return () => clearTimeout(timer); }, [load]);
 
@@ -75,7 +89,7 @@ function AdminDesks() {
   async function saveEquipments(event) {
     event.preventDefault(); setSaving(true);
     try {
-      await adminApi.updateTableEquipments(selected.id, selectedEquipmentIds);
+      await adminApi.updateTableEquipments(selected.id, selectedOfficeId, selectedEquipmentIds);
       toast.success(`${selected.code} equipment updated.`);
       setSelected(null);
       await load();
@@ -116,23 +130,46 @@ function AdminDesks() {
     }
   }
 
+  async function deleteEquipmentType(equipment) {
+    const result = await Swal.fire({
+      title: `Delete ${equipment.name}?`,
+      text: "This equipment type will be removed from every desk.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Delete equipment",
+      confirmButtonColor: "#dc3535",
+    });
+    if (!result.isConfirmed) return;
+    try {
+      await adminApi.deleteEquipment(equipment.id);
+      setEquipments((current) => current.filter((item) => item.id !== equipment.id));
+      setSelectedEquipmentIds((current) => current.filter((id) => id !== equipment.id));
+      toast.success("Equipment type deleted.");
+    } catch (deleteError) {
+      toast.error(deleteError.message);
+    }
+  }
+
+  const selectedOffice = offices.find((office) => office.id === selectedOfficeId);
+
   return (
     <>
       <PageHeading
         eyebrow="Floor operations"
         title="Desk management"
         description="Inspect daily occupancy and maintain equipment inventories."
-        action={<label className="admin-button secondary"><CalendarDays size={16} /><input className="admin-inline-date" type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label>}
+        action={<div className="admin-heading-actions"><select className="admin-filter" value={selectedOfficeId} onChange={(event) => { setSelectedOfficeId(event.target.value); setSelected(null); }}>{offices.map((office) => <option key={office.id} value={office.id}>{office.city}</option>)}</select><label className="admin-button secondary"><CalendarDays size={16} /><input className="admin-inline-date" type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label></div>}
       />
       <div className="admin-toolbar"><div className="admin-desk-legend"><span><i style={{ background: "#7f8585" }} /> Available</span><span><i style={{ background: "#ef2f35" }} /> Reserved</span><span><i style={{ background: "#8b5cf6" }} /> Admin reserved</span><span><i style={{ background: "#3f7bea" }} /> Assigned</span></div></div>
       <section className="admin-card admin-office-plan">
-        <div className="admin-card-header"><div><h3>ITU-ARI3 floor plan</h3><p>Select a desk to inspect its occupant and equipment</p></div><MonitorCog size={19} color="#ff6b00" /></div>
+        <div className="admin-card-header"><div><h3>{selectedOffice?.name ?? "Office"} floor plan</h3><p>Select a desk to inspect its occupant and equipment</p></div><MonitorCog size={19} color="#ff6b00" /></div>
         {loading ? <LoadingState label="Loading floor plan..." /> : error ? <ErrorState message={error} onRetry={load} /> : (
           <SeatGrid
             tableStatuses={tables}
             selectedSeat={selected?.number ?? null}
             onSeatClick={editDeskByNumber}
             adminMode
+            tableCount={tables.length}
           />
         )}
       </section>
@@ -165,10 +202,15 @@ function AdminDesks() {
               {equipments.map((equipment) => {
                 const exclusiveGroup = equipmentGroup(equipment);
                 return (
-                  <label className={`admin-equipment-option ${selectedEquipmentIds.includes(equipment.id) ? "selected" : ""}`} key={equipment.id}>
-                    <input type="checkbox" checked={selectedEquipmentIds.includes(equipment.id)} onChange={() => toggleEquipment(equipment)} />
-                    <span>{equipment.name}{exclusiveGroup && <small>Choose one · monitor setup</small>}</span>
-                  </label>
+                  <div className={`admin-equipment-option ${selectedEquipmentIds.includes(equipment.id) ? "selected" : ""}`} key={equipment.id}>
+                    <label className="admin-equipment-choice">
+                      <input type="checkbox" checked={selectedEquipmentIds.includes(equipment.id)} onChange={() => toggleEquipment(equipment)} />
+                      <span>{equipment.name}{exclusiveGroup && <small>Choose one · monitor setup</small>}</span>
+                    </label>
+                    <button type="button" className="admin-equipment-delete" title={`Delete ${equipment.name}`} onClick={() => deleteEquipmentType(equipment)}>
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 );
               })}
             </div>

@@ -28,6 +28,7 @@ describe("TablesService", () => {
     await expect(service.findAvailable(officeId, "2099-01-01")).resolves.toEqual({
       officeId,
       date: "2099-01-01",
+      tableCount: 2,
       tables: [2],
     });
     expect(prisma.reservation.findMany).toHaveBeenCalledWith({
@@ -50,6 +51,7 @@ describe("TablesService", () => {
     await expect(service.findAvailable(officeId, "2099-01-01")).resolves.toEqual({
       officeId,
       date: "2099-01-01",
+      tableCount: 2,
       tables: [1],
     });
   });

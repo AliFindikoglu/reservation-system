@@ -39,24 +39,24 @@ function UpdateReservationModal({
 
 
   useEffect(() => {
-    if (!reservationDate) return;
+    if (!reservationDate || !reservation?.office?.id) return;
 
     loadTables(reservationDate);
 
-  }, [reservationDate]);
+  }, [reservationDate, reservation?.office?.id]);
 
 
   async function loadTables(date) {
 
     try {
 
-      const data = await getTableStatuses(date);
+      const data = await getTableStatuses(reservation.office.id, date);
 
       setTableStatuses(data.tables);
 
 
       const currentTable = data.tables.find(
-        table => table.tableNumber === reservation.tableNumber
+        table => table.number === reservation.tableNumber
       );
 
 
@@ -86,6 +86,7 @@ function UpdateReservationModal({
       await updateReservation(
         reservation.id,
         {
+          officeId: reservation.office.id,
           tableNumber: selectedSeat,
           reservationDate,
         }
@@ -295,6 +296,8 @@ function UpdateReservationModal({
 
             tableStatuses={tableStatuses}
 
+            tableCount={tableStatuses.length}
+
             currentSeat={currentSeat}
 
             selectedSeat={selectedSeat}
@@ -309,7 +312,7 @@ function UpdateReservationModal({
 
               const table =
                 tableStatuses.find(
-                  t=>t.tableNumber === seat
+                  t=>t.number === seat
                 );
 
 

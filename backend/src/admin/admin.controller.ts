@@ -220,6 +220,14 @@ export class AdminController {
     return this.adminService.createEquipment(admin.userId, dto);
   }
 
+  @Delete("equipments/:id")
+  deleteEquipment(
+    @CurrentUser() admin: AuthenticatedUser,
+    @Param("id", ParseUUIDPipe) id: string,
+  ) {
+    return this.adminService.deleteEquipment(admin.userId, id);
+  }
+
   @Get("audit-logs")
   findAuditLogs() {
     return this.adminService.findAuditLogs();

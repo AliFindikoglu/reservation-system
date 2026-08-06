@@ -72,21 +72,35 @@ function ReservationChart({ reservations }) {
 function AdminDashboard() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
+  const [offices, setOffices] = useState([]);
+  const [selectedOfficeId, setSelectedOfficeId] = useState("");
+
+  useEffect(() => {
+    adminApi.getOffices()
+      .then((items) => {
+        setOffices(items);
+        const istanbul = items.find((office) => office.city.toLowerCase() === "istanbul");
+        setSelectedOfficeId((istanbul ?? items[0])?.id ?? "");
+      })
+      .catch((loadError) => setError(loadError.message));
+  }, []);
 
   const load = useCallback(async () => {
+    if (!selectedOfficeId) return;
     setError("");
     try {
-      const [users, reservations, assignments, restrictions] = await Promise.all([
+      const [users, reservations, assignments, restrictions, tableStatuses] = await Promise.all([
         adminApi.getUsers(true),
-        adminApi.getReservations(true),
+        adminApi.getReservations({ officeId: selectedOfficeId, status: "ALL" }),
         adminApi.getAssignments(true),
         adminApi.getRestrictions(true),
+        adminApi.getAdminTableStatuses(selectedOfficeId, toDateInput()),
       ]);
-      setData({ users, reservations, assignments, restrictions });
+      setData({ users, reservations, assignments, restrictions, tableStatuses });
     } catch (loadError) {
       setError(loadError.message);
     }
-  }, []);
+  }, [selectedOfficeId]);
 
   useEffect(() => { const timer = setTimeout(load, 0); return () => clearTimeout(timer); }, [load]);
 
@@ -99,17 +113,15 @@ function AdminDashboard() {
     (item) => !item.isCancelled && item.reservationDate?.slice(0, 10) === today,
   );
   const todaysReservations = todaysReservationItems.length;
-  const todaysAssignments = data.assignments.filter(
-    (item) => !item.revokedAt && item.startsOn?.slice(0, 10) <= today && (!item.endsOn || item.endsOn.slice(0, 10) >= today),
-  );
-  const activeAssignments = data.assignments.filter((item) => !item.revokedAt).length;
+  const activeAssignments = data.assignments.filter(
+    (item) => !item.revokedAt && item.table?.office?.id === selectedOfficeId,
+  ).length;
   const activeRestrictions = data.restrictions.filter(
     (item) => !item.revokedAt && item.startsOn?.slice(0, 10) <= today && item.endsOn?.slice(0, 10) >= today,
   ).length;
-  const occupiedTableIds = new Set([
-    ...todaysReservationItems.map((item) => item.tableId ?? item.table?.id),
-    ...todaysAssignments.map((item) => item.tableId ?? item.table?.id),
-  ].filter(Boolean));
+  const occupiedTables = data.tableStatuses.tables.filter(
+    (table) => table.status !== "available",
+  ).length;
   const adminReservations = data.reservations.filter((item) => !item.isCancelled && item.createdByAdminId).length;
   const activeReservations = data.reservations.filter((item) => !item.isCancelled).length;
 
@@ -119,6 +131,17 @@ function AdminDashboard() {
         eyebrow="Overview"
         title="Good afternoon, administrator"
         description="Live workplace utilization and reservation trends."
+        action={
+          <select
+            className="admin-filter"
+            value={selectedOfficeId}
+            onChange={(event) => setSelectedOfficeId(event.target.value)}
+          >
+            {offices.map((office) => (
+              <option key={office.id} value={office.id}>{office.city}</option>
+            ))}
+          </select>
+        }
       />
 
       <section className="admin-stats">
@@ -133,7 +156,7 @@ function AdminDashboard() {
         <article className="admin-card admin-donut-card">
           <div className="admin-card-header"><div><h3>Operational distribution</h3><p>Today’s occupancy and reservation sources</p></div></div>
           <div className="admin-donut-list">
-            <DonutChart value={occupiedTableIds.size} total={32} label="Desk utilization" />
+            <DonutChart value={occupiedTables} total={data.tableStatuses.tables.length} label="Desk utilization" />
             <DonutChart value={activeUsers} total={data.users.length} label="Active accounts" color="#3f7bea" />
             <DonutChart value={adminReservations} total={activeReservations} label="Admin-created bookings" color="#8b5cf6" />
           </div>

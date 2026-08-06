@@ -26,6 +26,13 @@ describe("Admin reservation domain (e2e)", () => {
   };
 
   async function cleanup() {
+    const testEquipments = await prisma.equipment.findMany({
+      where: { code: testEquipment.code },
+      select: { id: true },
+    });
+    await prisma.tableEquipment.deleteMany({
+      where: { equipmentId: { in: testEquipments.map((item) => item.id) } },
+    });
     await prisma.equipment.deleteMany({ where: { code: testEquipment.code } });
     const users = await prisma.user.findMany({
       where: { email: { in: emails } },
@@ -111,7 +118,7 @@ describe("Admin reservation domain (e2e)", () => {
       .send(testEquipment)
       .expect(403);
 
-    await request(server)
+    const createdEquipment = await request(server)
       .post("/admin/equipments")
       .set("Authorization", `Bearer ${adminToken}`)
       .send(testEquipment)
@@ -155,6 +162,54 @@ describe("Admin reservation domain (e2e)", () => {
       .expect(200)
       .expect((response) => {
         expect(response.body.table.equipments).toHaveLength(2);
+      });
+
+    await request(server)
+      .put(`/admin/tables/${table.id}/equipments`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        officeId,
+        equipmentIds: [createdEquipment.body.id],
+      })
+      .expect(200);
+
+    await request(server)
+      .delete(`/admin/equipments/${createdEquipment.body.id}`)
+      .set("Authorization", `Bearer ${assignedToken}`)
+      .expect(403);
+
+    await request(server)
+      .delete(`/admin/equipments/${createdEquipment.body.id}`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .expect(200, {
+        message: "The equipment has been deleted successfully.",
+      });
+
+    await expect(
+      prisma.equipment.findUniqueOrThrow({
+        where: { id: createdEquipment.body.id },
+      }),
+    ).resolves.toMatchObject({ isActive: false });
+    await expect(
+      prisma.tableEquipment.count({
+        where: { equipmentId: createdEquipment.body.id },
+      }),
+    ).resolves.toBe(0);
+
+    const equipmentListAfterDelete = await request(server)
+      .get("/equipments")
+      .set("Authorization", `Bearer ${assignedToken}`)
+      .expect(200);
+    expect(equipmentListAfterDelete.body.equipments).not.toContainEqual(
+      expect.objectContaining({ id: createdEquipment.body.id }),
+    );
+
+    await request(server)
+      .delete(`/admin/equipments/${createdEquipment.body.id}`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .expect(409, {
+        statusCode: 409,
+        message: "This equipment has already been deleted.",
       });
 
     const startsOn = dateFromNow(2);

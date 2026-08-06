@@ -774,6 +774,38 @@ textarea {
   accent-color: var(--admin-orange);
 }
 
+.admin-equipment-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  cursor: pointer;
+}
+
+.admin-equipment-delete {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: #a3a9b3;
+  cursor: pointer;
+}
+
+.admin-equipment-delete:hover {
+  color: #dc3535;
+  background: #fff0f0;
+}
+
+.admin-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .admin-conflicts {
   margin: 16px 0 0;
   padding: 13px;

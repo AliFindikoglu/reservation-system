@@ -17,6 +17,12 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
     name: "Istanbul Office",
     city: "Istanbul",
   };
+  const izmirOfficeId = "00000000-0000-4000-8000-000000000002";
+  const izmirOfficeResponse = {
+    id: izmirOfficeId,
+    name: "Izmir Office",
+    city: "Izmir",
+  };
   const equipmentId = "00000000-0000-4000-8000-000000000101";
   const equipmentResponse = {
     id: equipmentId,
@@ -72,6 +78,11 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
         code: `${String.fromCharCode(65 + Math.floor(index / 8))}${(index % 8) + 1}`,
       })),
       skipDuplicates: true,
+    });
+    await prisma.office.upsert({
+      where: { id: izmirOfficeId },
+      create: izmirOfficeResponse,
+      update: { ...izmirOfficeResponse, isActive: true },
     });
     const tableOne = await prisma.table.findUniqueOrThrow({
       where: { officeId_number: { officeId, number: 1 } },
@@ -247,7 +258,32 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
         phone: "05061112233",
         role: "USER",
         isActive: true,
+        preferredOfficeId: officeId,
+        preferredOffice: officeResponse,
+        themePreference: "LIGHT",
       });
+
+    await request(server)
+      .patch("/auth/me")
+      .set("Authorization", `Bearer ${firstToken}`)
+      .send({ preferredOfficeId: izmirOfficeId, themePreference: "DARK" })
+      .expect(200, {
+        id: firstLogin.body.user.id,
+        fullName: "Birinci Kullanıcı",
+        email: firstEmail,
+        phone: "05061112233",
+        role: "USER",
+        isActive: true,
+        preferredOfficeId: izmirOfficeId,
+        preferredOffice: izmirOfficeResponse,
+        themePreference: "DARK",
+      });
+
+    await request(server)
+      .patch("/auth/me")
+      .set("Authorization", `Bearer ${firstToken}`)
+      .send({ preferredOfficeId: officeId, themePreference: "LIGHT" })
+      .expect(200);
 
     await request(server)
       .patch("/auth/me")
@@ -261,7 +297,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .expect(400, {
         statusCode: 400,
         message:
-          "Please update only the full name and phone number fields.",
+          "Please update only supported profile and preference fields.",
       });
 
     await request(server)
@@ -284,6 +320,9 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
         phone: "05069999999",
         role: "USER",
         isActive: true,
+        preferredOfficeId: officeId,
+        preferredOffice: officeResponse,
+        themePreference: "LIGHT",
       });
 
     await request(server)
@@ -296,6 +335,9 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
         phone: "05069999999",
         role: "USER",
         isActive: true,
+        preferredOfficeId: officeId,
+        preferredOffice: officeResponse,
+        themePreference: "LIGHT",
       });
 
     await request(server)

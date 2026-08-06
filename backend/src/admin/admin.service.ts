@@ -1474,6 +1474,43 @@ export class AdminService {
     }
   }
 
+  async deleteEquipment(adminUserId: string, equipmentId: string) {
+    const equipment = await this.prisma.equipment.findUnique({
+      where: { id: equipmentId },
+    });
+    if (!equipment) {
+      throw new NotFoundException("Equipment not found.");
+    }
+    if (!equipment.isActive) {
+      throw new ConflictException("This equipment has already been deleted.");
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const tableLinks = await tx.tableEquipment.findMany({
+        where: { equipmentId },
+        select: { tableId: true },
+      });
+      await tx.tableEquipment.deleteMany({ where: { equipmentId } });
+      await tx.equipment.update({
+        where: { id: equipmentId },
+        data: { isActive: false },
+      });
+      await this.createAudit(tx, adminUserId, {
+        action: "DELETE_EQUIPMENT",
+        targetType: "Equipment",
+        targetId: equipmentId,
+        oldValue: {
+          name: equipment.name,
+          code: equipment.code,
+          isActive: true,
+          tableIds: tableLinks.map((item) => item.tableId),
+        },
+        newValue: { isActive: false },
+      });
+      return { message: "The equipment has been deleted successfully." };
+    });
+  }
+
   findAuditLogs() {
     return this.prisma.adminAuditLog.findMany({
       include: {

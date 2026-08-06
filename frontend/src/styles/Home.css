@@ -27,6 +27,36 @@
 
 }
 
+.office-switcher-row {
+    display: flex;
+    justify-content: flex-end;
+    padding: 18px 0 10px;
+}
+
+.office-switcher {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px 8px 14px;
+    border: 1px solid #e7e9ee;
+    border-radius: 12px;
+    background: #fff;
+    color: #697386;
+    font-size: 13px;
+    font-weight: 650;
+    box-shadow: 0 5px 16px rgba(24, 33, 47, .05);
+}
+
+.office-switcher select {
+    min-width: 130px;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: #18212f;
+    font-weight: 700;
+    cursor: pointer;
+}
+
 .header-card {
     background: #fff;
     padding: 8px 8px;

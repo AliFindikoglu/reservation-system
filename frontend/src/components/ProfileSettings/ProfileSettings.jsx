@@ -4,6 +4,7 @@ import { updateProfile, changePassword } from "../../api/authApi";
 import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
 import PasswordInput from "../../components/PasswordInput/PasswordInput";
+import { getOffices } from "../../api/officesApi";
 
 import {
     validateName,
@@ -19,6 +20,10 @@ function ProfileSettings({ user, setUser }) {
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
     const [phone, setPhone] = useState("");
+    const [offices, setOffices] = useState([]);
+    const [preferredOfficeId, setPreferredOfficeId] = useState("");
+    const [themePreference, setThemePreference] = useState("LIGHT");
+    const [savingPreferences, setSavingPreferences] = useState(false);
 
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
@@ -51,8 +56,16 @@ function ProfileSettings({ user, setUser }) {
             : user.phone;
 
         setPhone(formattedPhone || "");
+        setPreferredOfficeId(user.preferredOfficeId ?? "");
+        setThemePreference(user.themePreference ?? "LIGHT");
 
     }, [user]);
+
+    useEffect(() => {
+        getOffices()
+            .then(setOffices)
+            .catch((error) => toast.error(error.message));
+    }, []);
 
     const hasChanges =
         `${firstName.trim()} ${lastName.trim()}` !== (user?.fullName ?? "") ||
@@ -154,6 +167,31 @@ function ProfileSettings({ user, setUser }) {
                 ...prev,
                 currentPassword: error.message,
             }));
+        }
+    };
+
+    const hasPreferenceChanges =
+        preferredOfficeId !== (user?.preferredOfficeId ?? "") ||
+        themePreference !== (user?.themePreference ?? "LIGHT");
+
+    const handlePreferencesSave = async () => {
+        if (!preferredOfficeId) {
+            toast.error("Please select a preferred office.");
+            return;
+        }
+        setSavingPreferences(true);
+        try {
+            const updatedUser = await updateProfile({
+                preferredOfficeId,
+                themePreference,
+            });
+            setCurrentUser(updatedUser);
+            setUser(updatedUser);
+            toast.success("Preferences updated successfully.");
+        } catch (error) {
+            toast.error(error.message);
+        } finally {
+            setSavingPreferences(false);
         }
     };
 
@@ -279,6 +317,53 @@ function ProfileSettings({ user, setUser }) {
                     disabled={!hasChanges}
                 >
                     Save Changes
+                </button>
+
+            </section>
+
+
+            <section className="settings-card">
+
+                <h3>Preferences</h3>
+
+                <div className="divider"></div>
+
+                <div className="preferences-grid">
+                    <div className="field">
+                        <label>Preferred Office</label>
+                        <select
+                            value={preferredOfficeId}
+                            onChange={(event) => setPreferredOfficeId(event.target.value)}
+                        >
+                            <option value="" disabled>Select an office</option>
+                            {offices.map((office) => (
+                                <option key={office.id} value={office.id}>
+                                    {office.city} · {office.name}
+                                </option>
+                            ))}
+                        </select>
+                        <small>This office opens automatically after you sign in.</small>
+                    </div>
+
+                    <div className="field">
+                        <label>Appearance</label>
+                        <select
+                            value={themePreference}
+                            onChange={(event) => setThemePreference(event.target.value)}
+                        >
+                            <option value="LIGHT">Light mode</option>
+                            <option value="DARK">Dark mode</option>
+                        </select>
+                        <small>Your theme is applied across user and admin pages.</small>
+                    </div>
+                </div>
+
+                <button
+                    className="profile-save-btn"
+                    onClick={handlePreferencesSave}
+                    disabled={!hasPreferenceChanges || savingPreferences}
+                >
+                    {savingPreferences ? "Saving..." : "Save Preferences"}
                 </button>
 
             </section>

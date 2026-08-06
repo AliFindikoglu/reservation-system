@@ -94,7 +94,8 @@
     color:#697386;
 }
 
-.field input{
+.field input,
+.field select{
     height:42px;
     border:1px solid #e7e9ee;
     border-radius:10px;
@@ -186,4 +187,27 @@
 
 .password-toggle:hover {
   color: #ff6b00;
+}
+
+.field select {
+    background:white;
+    color:#18212f;
+}
+
+.field small {
+    color:#8a93a2;
+    font-size:12px;
+    line-height:1.4;
+}
+
+.preferences-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+}
+
+@media(max-width:768px){
+    .preferences-grid{
+        grid-template-columns:1fr;
+    }
 }
