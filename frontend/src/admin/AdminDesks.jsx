@@ -160,7 +160,7 @@ function AdminDesks() {
         description="Inspect daily occupancy and maintain equipment inventories."
         action={<div className="admin-heading-actions"><select className="admin-filter" value={selectedOfficeId} onChange={(event) => { setSelectedOfficeId(event.target.value); setSelected(null); }}>{offices.map((office) => <option key={office.id} value={office.id}>{office.city}</option>)}</select><label className="admin-button secondary"><CalendarDays size={16} /><input className="admin-inline-date" type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label></div>}
       />
-      <div className="admin-toolbar"><div className="admin-desk-legend"><span><i style={{ background: "#7f8585" }} /> Available</span><span><i style={{ background: "#ef2f35" }} /> Reserved</span><span><i style={{ background: "#8b5cf6" }} /> Admin reserved</span><span><i style={{ background: "#3f7bea" }} /> Assigned</span></div></div>
+      <div className="admin-toolbar"><div className="admin-desk-legend"><span><i style={{ background: "#0ae90a" }} /> Available</span><span><i style={{ background: "#908e8e" }} /> Reserved</span><span><i style={{ background: "#8b5cf6" }} /> Admin reserved</span></div></div>
       <section className="admin-card admin-office-plan">
         <div className="admin-card-header"><div><h3>{selectedOffice?.name ?? "Office"} floor plan</h3><p>Select a desk to inspect its occupant and equipment</p></div><MonitorCog size={19} color="#ff6b00" /></div>
         {loading ? <LoadingState label="Loading floor plan..." /> : error ? <ErrorState message={error} onRetry={load} /> : (

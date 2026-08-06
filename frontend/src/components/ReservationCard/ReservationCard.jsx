@@ -1,5 +1,5 @@
 import "./ReservationCard.css";
-import { CalendarDays, Trash2, Pencil } from "lucide-react";
+import { CalendarDays, Trash2, Pencil, MapPin } from "lucide-react";
 import { getSeatLabel } from "../../utils/seatUtil";
 
 function ReservationCard({
@@ -8,6 +8,7 @@ function ReservationCard({
   onUpdate,
   onCancel,
 }) {
+
   const date = new Date(reservation.reservationDate).toLocaleDateString(
     "tr-TR",
     {
@@ -22,6 +23,7 @@ function ReservationCard({
       <div className="table-box">
         <span>MASA</span>
         <h2>{getSeatLabel(reservation.tableNumber)}</h2>
+
       </div>
 
       <div className="reservation-info">
@@ -29,6 +31,9 @@ function ReservationCard({
           <CalendarDays size={16} />
           <span>{date}</span>
         </div>
+        
+      <span className="office-name-text"><MapPin size={11} />{reservation.office.name}</span>
+    
 
         {!isPast && (
           <div className="reservation-actions">

@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 import "./UpdateReservationModal.css";
 
 import DateSelector from "../DateSelector/DateSelector";
 import SeatGrid from "../SeatGrid/SeatGrid";
 import SeatLegend from "../SeatLegend/SeatLegend";
+import ReservationSummary from "../ReservationSummary/ReservationSummary"
 
 import { updateReservation } from "../../api/reservationsApi";
 import { getTableStatuses } from "../../api/tableApi";
@@ -23,6 +24,8 @@ function UpdateReservationModal({
   const [tableStatuses, setTableStatuses] = useState([]);
   const [currentSeat, setCurrentSeat] = useState(null);
   const [equipments, setEquipments] = useState([]);
+  const [showEquipments, setShowEquipments] = useState(false);
+  const equipmentRef = useRef(null);
 
 
   useEffect(() => {
@@ -44,6 +47,24 @@ function UpdateReservationModal({
     loadTables(reservationDate);
 
   }, [reservationDate, reservation?.office?.id]);
+
+  useEffect(() => {
+  function handleClickOutside(event) {
+    if (
+      equipmentRef.current &&
+      !equipmentRef.current.contains(event.target)
+    ) {
+      setShowEquipments(false);
+    }
+  }
+
+  document.addEventListener("mousedown", handleClickOutside);
+
+  return () => {
+    document.removeEventListener("mousedown", handleClickOutside);
+  };
+}, []);
+
 
 
   async function loadTables(date) {
@@ -153,8 +174,30 @@ function UpdateReservationModal({
         </h2>
 
 
+        <ReservationSummary
+        selectedSeat={selectedSeat ?? reservation.tableNumber}
+        currentSeat={currentSeat}
+        selectedDate={reservationDate}
+        equipments={equipments}
+        onReserve={handleSave}
+        buttonText="Save Changes"
+        showCancel = {true}
+        onCancel={onClose}
+        isUpdateMode={true}
+        isModal = {true}
+        />
 
-        <DateSelector
+
+        <div className="seat-selection-card">
+          <div className="seat-toolbar">
+           <SeatLegend /> 
+
+           <div className="toolbar-date">
+            <span className="toolbar-date-label">
+              Reservation Date
+            </span>
+        
+           <DateSelector
 
           selectedDate={
             reservationDate
@@ -174,159 +217,27 @@ function UpdateReservationModal({
 
         />
 
-
-
-
-<div className="update-summary">
-
-  <div className="summary-left">
-
-    <h4>Reservation Summary</h4>
-
-    <p>
-      You're updating your reservation to{" "}
-      <strong>
-        {selectedSeat ? getSeatLabel(selectedSeat) : getSeatLabel(reservation.tableNumber)}
-      </strong>{" "}
-      on{" "}
-      <strong>
-        {new Date(reservationDate).toLocaleDateString(
-          "en-GB",
-          {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-          }
-        )}
-      </strong>.
-    </p>
-
-  </div>
-
-
-  {/* EQUIPMENT ORTA ALAN */}
-
-  <div className="summary-equipment-section">
-
-    <span className="equipment-title">
-      Equipment
-    </span>
-
-
-    <div className="equipment-list">
-
-      {equipments.length > 0 ? (
-
-        equipments.slice(0, 2).map((equipment) => (
-          <div
-            key={equipment.id}
-            className="equipment-item"
-          >
-
-            <span className="equipment-name">
-              {equipment.name}
-            </span>
-
-            <span className="equipment-code">
-              {equipment.code}
-            </span>
-
           </div>
-        ))
-
-      ) : (
-
-        <span className="no-equipment">
-          No equipment assigned
-        </span>
-
-      )}
-
-
-      {equipments.length > 2 && (
-        <button className="equipment-more">
-          +{equipments.length - 2} more
-        </button>
-      )}
-
-    </div>
-
-  </div>
-
-
-
-  {/* BUTTONLAR SAĞ */}
-
-  <div className="summary-buttons">
-
-    <button
-      className="cancel-btn"
-      onClick={onClose}
-    >
-      Cancel
-    </button>
-
-
-    <button
-      className="save-btn"
-      onClick={handleSave}
-    >
-      Save Changes →
-    </button>
-
-  </div>
-
-
-</div>
-
-        <div className="seat-selection-card">
-
-
-          <h4>
-            Select a New Desk
-          </h4>
-
-
-
-          <SeatLegend />
-
-
-
+        </div>
           <SeatGrid
 
             tableStatuses={tableStatuses}
-
             tableCount={tableStatuses.length}
-
             currentSeat={currentSeat}
-
             selectedSeat={selectedSeat}
-
-
             onSeatClick={(seat)=>{
-
-
+               if (seat === currentSeat) return;
               setSelectedSeat(seat);
-
-
-
               const table =
                 tableStatuses.find(
                   t=>t.number === seat
                 );
-
-
-
               setEquipments(
                 table?.equipments || []
               );
-
-
             }}
-
-
             isUpdateMode={true}
-
+            isModal = {true}
           />
 
 

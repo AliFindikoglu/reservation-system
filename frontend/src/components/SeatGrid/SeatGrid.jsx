@@ -12,6 +12,7 @@ function SeatGrid({
   interactionDisabled = false,
   adminMode = false,
   tableCount = 32,
+  isModal = false,
 }) {
   const blocks = [
     { letter: "A", seats: [1, 2, 3, 4, 5, 6, 7, 8] },
@@ -70,9 +71,12 @@ function SeatGrid({
     </div>
   );
 
-  return (
-    <div className="office-container">
-      {/* ÜST ALAN */}
+    return (
+  <div
+    className={`office-container ${
+      isModal ? "office-container-modal" : ""
+    }`}
+  >
       <div className="office-top">
         {/* WC Alanı */}
         <div className="wc-area">
