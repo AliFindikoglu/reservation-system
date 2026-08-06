@@ -1,4 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
+import { EquipmentResponseDto } from "../../equipments/dto/equipment-response.dto";
 
 export class ReservationResponseDto {
   @ApiProperty({ format: "uuid" })
@@ -18,4 +19,7 @@ export class ReservationResponseDto {
     },
   })
   office!: { id: string; name: string; city: string };
+
+  @ApiProperty({ type: [EquipmentResponseDto] })
+  equipments!: EquipmentResponseDto[];
 }

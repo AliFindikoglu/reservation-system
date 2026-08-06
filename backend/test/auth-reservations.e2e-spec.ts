@@ -17,6 +17,12 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
     name: "Istanbul Office",
     city: "Istanbul",
   };
+  const equipmentId = "00000000-0000-4000-8000-000000000101";
+  const equipmentResponse = {
+    id: equipmentId,
+    code: "E2E_MONITOR",
+    name: "E2E Monitor",
+  };
 
   const firstEmail = "e2e.first@eteration.com";
   const secondEmail = "e2e.second@eteration.com";
@@ -67,10 +73,30 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       })),
       skipDuplicates: true,
     });
+    const tableOne = await prisma.table.findUniqueOrThrow({
+      where: { officeId_number: { officeId, number: 1 } },
+    });
+    await prisma.equipment.upsert({
+      where: { code: equipmentResponse.code },
+      create: { ...equipmentResponse, isActive: true },
+      update: { name: equipmentResponse.name, isActive: true },
+    });
+    await prisma.tableEquipment.upsert({
+      where: {
+        tableId_equipmentId: {
+          tableId: tableOne.id,
+          equipmentId,
+        },
+      },
+      create: { tableId: tableOne.id, equipmentId },
+      update: {},
+    });
   });
 
   afterAll(async () => {
     await cleanupTestUsers();
+    await prisma.tableEquipment.deleteMany({ where: { equipmentId } });
+    await prisma.equipment.deleteMany({ where: { id: equipmentId } });
     await app.close();
   });
 
@@ -396,12 +422,26 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .set("Authorization", `Bearer ${firstToken}`)
       .send({ officeId, tableNumber: 1, reservationDate })
       .expect(201);
-    expect(created.body).toEqual({
+    expect(created.body).toMatchObject({
       id: expect.any(String),
       reservationDate,
       tableNumber: 1,
       office: officeResponse,
     });
+    expect(created.body.equipments).toEqual(
+      expect.arrayContaining([equipmentResponse]),
+    );
+
+    const reservationsWithEquipments = await request(server)
+      .get("/reservations/me")
+      .set("Authorization", `Bearer ${firstToken}`)
+      .expect(200);
+    expect(reservationsWithEquipments.body).toContainEqual(
+      expect.objectContaining({
+        id: created.body.id,
+        equipments: expect.arrayContaining([equipmentResponse]),
+      }),
+    );
 
     const availableAfterCreate = await request(server)
       .get("/tables/available")
@@ -451,15 +491,17 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       .send({ officeId, tableNumber: 2, reservationDate: editDate })
       .expect(201);
 
-    await request(server)
+    const updatedReservation = await request(server)
       .patch(`/reservations/${created.body.id}`)
       .set("Authorization", `Bearer ${firstToken}`)
       .send({ officeId, tableNumber: 3, reservationDate: editDate })
-      .expect(200, {
+      .expect(200);
+    expect(updatedReservation.body).toMatchObject({
         id: created.body.id,
         reservationDate: editDate,
         tableNumber: 3,
         office: officeResponse,
+        equipments: expect.any(Array),
       });
 
     const availableAfterEditOnOldDate = await request(server)
@@ -492,6 +534,7 @@ describe("JWT kullanıcı ve rezervasyon akışı (e2e)", () => {
       reservationDate: editDate,
       tableNumber: 3,
       office: officeResponse,
+      equipments: expect.any(Array),
     });
 
     const secondReservationForFirstUser = await request(server)

@@ -10,6 +10,12 @@ import { ReservationsService } from "./reservations.service";
 describe("ReservationsService", () => {
   const officeId = "00000000-0000-4000-8000-000000000001";
   const office = { id: officeId, name: "Istanbul Office", city: "Istanbul" };
+  const equipment = {
+    id: "00000000-0000-4000-8000-000000000101",
+    code: "MONITOR",
+    name: "Monitor",
+  };
+  const tableEquipments = [{ equipment }];
   const prisma = {
     office: { findFirst: jest.fn() },
     table: { findUnique: jest.fn() },
@@ -39,11 +45,12 @@ describe("ReservationsService", () => {
     prisma.reservation.create.mockResolvedValue({
       id: "r1",
       reservationDate: new Date("2099-01-01"),
-      table: { number: 1, office },
+      table: { number: 1, office, equipments: tableEquipments },
     });
     await expect(service.create("user-1", dto)).resolves.toMatchObject({
       id: "r1",
       tableNumber: 1,
+      equipments: [equipment],
     });
     expect(prisma.reservation.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -57,7 +64,7 @@ describe("ReservationsService", () => {
     const successfulReservation = {
       id: "reservation-1",
       reservationDate: new Date("2099-01-01"),
-      table: { number: 1, office },
+      table: { number: 1, office, equipments: tableEquipments },
     };
     const uniqueConstraintError =
       new Prisma.PrismaClientKnownRequestError(
@@ -99,8 +106,22 @@ describe("ReservationsService", () => {
     expect(prisma.reservation.create).toHaveBeenCalledTimes(2);
   });
   it("kullanıcıya yalnız kendi rezervasyonlarını döndürür", async () => {
-    prisma.reservation.findMany.mockResolvedValue([]);
-    await service.findMyReservations("user-1");
+    prisma.reservation.findMany.mockResolvedValue([
+      {
+        id: "r1",
+        reservationDate: new Date("2099-01-01"),
+        table: { number: 1, office, equipments: tableEquipments },
+      },
+    ]);
+    await expect(service.findMyReservations("user-1")).resolves.toEqual([
+      {
+        id: "r1",
+        reservationDate: "2099-01-01",
+        tableNumber: 1,
+        office,
+        equipments: [equipment],
+      },
+    ]);
     expect(prisma.reservation.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { userId: "user-1", isCancelled: false },
@@ -138,7 +159,7 @@ describe("ReservationsService", () => {
     prisma.reservation.update.mockResolvedValue({
       id: "r1",
       reservationDate: new Date("2099-01-02"),
-      table: { number: 2, office },
+      table: { number: 2, office, equipments: tableEquipments },
     });
 
     await expect(
@@ -152,6 +173,7 @@ describe("ReservationsService", () => {
       reservationDate: "2099-01-02",
       tableNumber: 2,
       office,
+      equipments: [equipment],
     });
     expect(prisma.reservation.update).toHaveBeenCalledWith({
       where: { id: "r1" },
@@ -159,7 +181,18 @@ describe("ReservationsService", () => {
         tableId: 2,
         reservationDate: new Date("2099-01-02T00:00:00.000Z"),
       },
-      include: { table: { include: { office: true } } },
+      include: {
+        table: {
+          include: {
+            office: true,
+            equipments: {
+              where: { equipment: { isActive: true } },
+              include: { equipment: true },
+              orderBy: { equipment: { name: "asc" } },
+            },
+          },
+        },
+      },
     });
   });
   it("güncelleme çakışmasında Update failed mesajı döndürür", async () => {

@@ -15,6 +15,23 @@ import {
   parseReservationDate,
 } from "./reservation-date";
 
+const reservationResponseInclude = {
+  table: {
+    include: {
+      office: true,
+      equipments: {
+        where: { equipment: { isActive: true } },
+        include: { equipment: true },
+        orderBy: { equipment: { name: "asc" } },
+      },
+    },
+  },
+} satisfies Prisma.ReservationInclude;
+
+type ReservationResponseRecord = Prisma.ReservationGetPayload<{
+  include: typeof reservationResponseInclude;
+}>;
+
 @Injectable()
 export class ReservationsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -37,7 +54,7 @@ export class ReservationsService {
     try {
       const reservation = await this.prisma.reservation.create({
         data: { userId, tableId: table.id, reservationDate },
-        include: { table: { include: { office: true } } },
+        include: reservationResponseInclude,
       });
       return this.toResponse(reservation);
     } catch (error) {
@@ -49,7 +66,7 @@ export class ReservationsService {
   async findMyReservations(userId: string) {
     const reservations = await this.prisma.reservation.findMany({
       where: { userId, isCancelled: false },
-      include: { table: { include: { office: true } } },
+      include: reservationResponseInclude,
       orderBy: { reservationDate: "asc" },
     });
     return reservations.map((reservation) => this.toResponse(reservation));
@@ -95,7 +112,7 @@ export class ReservationsService {
       const reservation = await this.prisma.reservation.update({
         where: { id },
         data: { tableId, reservationDate },
-        include: { table: { include: { office: true } } },
+        include: reservationResponseInclude,
       });
       return this.toResponse(reservation);
     } catch (error) {
@@ -246,14 +263,7 @@ export class ReservationsService {
       error.code === "P2002"
     );
   }
-  private toResponse(reservation: {
-    id: string;
-    reservationDate: Date;
-    table: {
-      number: number;
-      office: { id: string; name: string; city: string };
-    };
-  }) {
+  private toResponse(reservation: ReservationResponseRecord) {
     return {
       id: reservation.id,
       reservationDate: reservation.reservationDate.toISOString().slice(0, 10),
@@ -263,6 +273,11 @@ export class ReservationsService {
         name: reservation.table.office.name,
         city: reservation.table.office.city,
       },
+      equipments: reservation.table.equipments.map((item) => ({
+        id: item.equipment.id,
+        code: item.equipment.code,
+        name: item.equipment.name,
+      })),
     };
   }
 }
