@@ -20,19 +20,7 @@ export class UsersService {
     });
   }
 
-  updateProfile(
-    id: string,
-    data: {
-      fullName?: string;
-      phone?: string;
-      preferredOfficeId?: string;
-      themePreference?: ThemePreference;
-    },
-  ) {
-    return this.updateProfileWithPreferences(id, data);
-  }
-
-  private async updateProfileWithPreferences(
+  async updateProfile(
     id: string,
     data: {
       fullName?: string;
@@ -43,17 +31,32 @@ export class UsersService {
   ) {
     if (data.preferredOfficeId !== undefined) {
       const office = await this.prisma.office.findFirst({
-        where: { id: data.preferredOfficeId, isActive: true },
+        where: {
+          id: data.preferredOfficeId,
+          isActive: true,
+        },
         select: { id: true },
       });
+
       if (!office) {
-        throw new ConflictException("The selected preferred office is not available.");
+        throw new ConflictException(
+          "The selected preferred office is not available.",
+        );
       }
     }
+
     return this.prisma.user.update({
       where: { id },
       data,
-      include: { preferredOffice: { select: { id: true, name: true, city: true } } },
+      include: {
+        preferredOffice: {
+          select: {
+            id: true,
+            name: true,
+            city: true,
+          },
+        },
+      },
     });
   }
 
