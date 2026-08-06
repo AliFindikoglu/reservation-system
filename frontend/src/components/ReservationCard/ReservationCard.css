@@ -100,3 +100,10 @@
   transition: .2s;
 }
 
+.office-name-text{
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #6b7280;
+}

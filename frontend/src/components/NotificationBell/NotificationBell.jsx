@@ -1,5 +1,5 @@
 import { Bell, Check, Inbox } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import toast from "react-hot-toast";
 import { notificationsApi } from "../../api/notificationsApi";
 import "./NotificationBell.css";
@@ -8,6 +8,7 @@ function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const notificationRef = useRef(null);
 
   const load = useCallback(async () => {
     try {
@@ -31,6 +32,24 @@ function NotificationBell() {
     };
   }, [load]);
 
+  useEffect(() => {
+  function handleClickOutside(event) {
+    if (
+      notificationRef.current &&
+      !notificationRef.current.contains(event.target)
+    ) {
+      setOpen(false);
+    }
+  }
+
+  document.addEventListener("mousedown", handleClickOutside);
+
+  return () => {
+    document.removeEventListener("mousedown", handleClickOutside);
+  };
+}, []);
+
+
   const unreadCount = useMemo(
     () => notifications.filter((notification) => !notification.isRead).length,
     [notifications],
@@ -49,7 +68,11 @@ function NotificationBell() {
   }
 
   return (
-    <div className="notification-bell">
+    <div 
+    className="notification-bell"
+    ref={notificationRef}
+    >
+      
       <button
         type="button"
         className="notification-bell-button"

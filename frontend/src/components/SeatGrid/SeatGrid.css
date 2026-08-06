@@ -444,4 +444,6 @@
 .storage:hover, .office-2:hover, .office-1:hover {
     background: #f1f5f9;
 }
-
+.office-container-modal {
+    margin-bottom: 0 !important;
+}

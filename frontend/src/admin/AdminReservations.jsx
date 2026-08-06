@@ -134,13 +134,13 @@ function AdminReservations() {
       <section className="admin-card">
         {loading ? <LoadingState /> : error ? <ErrorState message={error} onRetry={load} /> : visibleReservations.length === 0 ? <EmptyState title="No reservations found" description="Create a reservation or change the current filters." /> : (
           <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>User</th><th>Office</th><th>Desk</th><th>Date</th><th>Source</th><th>Status</th><th style={{ textAlign: "right" }}>Actions</th></tr></thead>
-          <tbody>{visibleReservations.map((item) => <tr key={item.id}>
-            <td><div className="admin-person"><span className="admin-person-avatar">{item.user?.fullName?.[0] ?? "U"}</span><div><strong>{item.user?.fullName}</strong><span>{item.user?.email}</span></div></div></td>
-            <td>{item.table?.office?.city ?? "—"}</td><td><strong>{item.table?.code ?? `Desk ${item.table?.number}`}</strong></td><td>{formatDate(item.reservationDate)}</td>
-            <td><StatusPill tone={item.createdByAdminId ? "warning" : "neutral"}>{item.createdByAdminId ? "Admin" : "User"}</StatusPill></td>
-            <td><StatusPill tone={item.isCancelled ? "danger" : "success"}>{item.isCancelled ? "Cancelled" : "Active"}</StatusPill></td>
-            <td><div className="admin-row-actions">{!item.isCancelled && <><button type="button" className="admin-icon-action" onClick={() => openEdit(item)} title="Edit"><Edit3 size={15} /></button><button type="button" className="admin-icon-action danger" onClick={() => cancel(item)} title="Cancel"><Trash2 size={15} /></button></>}</div></td>
-          </tr>)}</tbody></table></div>
+            <tbody>{visibleReservations.map((item) => <tr key={item.id}>
+              <td><div className="admin-person"><span className="admin-person-avatar">{item.user?.fullName?.[0] ?? "U"}</span><div><strong>{item.user?.fullName}</strong><span>{item.user?.email}</span></div></div></td>
+              <td>{item.table?.office?.city ?? "—"}</td><td><strong>{item.table?.code ?? `Desk ${item.table?.number}`}</strong></td><td>{formatDate(item.reservationDate)}</td>
+              <td><StatusPill tone={item.createdByAdminId ? "warning" : "neutral"}>{item.createdByAdminId ? "Admin" : "User"}</StatusPill></td>
+              <td><StatusPill tone={item.isCancelled ? "danger" : "success"}>{item.isCancelled ? "Cancelled" : "Active"}</StatusPill></td>
+              <td><div className="admin-row-actions">{!item.isCancelled && <><button type="button" className="admin-icon-action" onClick={() => openEdit(item)} title="Edit"><Edit3 size={15} /></button><button type="button" className="admin-icon-action danger" onClick={() => cancel(item)} title="Cancel"><Trash2 size={15} /></button></>}</div></td>
+            </tr>)}</tbody></table></div>
         )}
       </section>
 
