@@ -15,6 +15,7 @@ function ReservationSummary({
   buttonText = "Book Selected Seat →",
   showCancel = false,
   onCancel,
+  equipmentPlacement= "top",
 }) {
   const [showEquipment, setShowEquipment] = useState(false);
   const equipmentRef = useRef(null);
@@ -116,8 +117,7 @@ function ReservationSummary({
                     </button>
 
                     {showEquipment && (
-                      <div className="equipment-popover">
-                        <h5>All Equipment</h5>
+                      <div className={`equipment-popover ${equipmentPlacement}`}>                        <h5>All Equipment</h5>
 
                         {equipments.map((equipment) => (
                           <div

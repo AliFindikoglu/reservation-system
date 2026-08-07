@@ -100,3 +100,10 @@
     font-size: 13px;
     line-height: 1.5;
 }
+
+.top-toolbar{
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: flex-end;
+    gap: 80px;
+}

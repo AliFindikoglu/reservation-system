@@ -210,7 +210,10 @@ console.log(selectedTable?.equipments);
 
         <div className="main-content">
           <div className="hero">
-            <div className="office-switcher-row">
+
+            <div className="top-toolbar">
+
+              <div className="office-switcher-row">
               <label className="office-switcher">
                 <span>Office</span>
                 <select
@@ -250,6 +253,8 @@ console.log(selectedTable?.equipments);
 
             <SeatLegend />
 
+            </div>
+            
             <SeatGrid
               tableStatuses={tableStatuses}
               selectedSeat={selectedSeat}
