@@ -8,6 +8,7 @@
     border: 2px solid #ff6b00;
     border-radius: 14px;
     margin-right: 20px;
+    z-index: 2000;
 
     cursor: pointer;
 }

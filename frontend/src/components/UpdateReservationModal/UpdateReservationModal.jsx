@@ -185,6 +185,8 @@ function UpdateReservationModal({
         onCancel={onClose}
         isUpdateMode={true}
         isModal = {true}
+        equipmentPlacement="bottom"
+
         />
 
 
