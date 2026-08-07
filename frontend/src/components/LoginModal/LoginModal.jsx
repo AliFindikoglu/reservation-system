@@ -50,9 +50,9 @@ function LoginModal({
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="login-modal-overlay" onClick={onClose}>
       <div
-        className="modal"
+        className="login-modal"
         onClick={(e) => e.stopPropagation()}
       >
         <button

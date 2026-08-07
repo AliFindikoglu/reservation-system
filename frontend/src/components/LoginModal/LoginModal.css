@@ -1,4 +1,4 @@
-.modal-overlay {
+.login-modal-overlay {
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.45);
@@ -6,12 +6,18 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  box-sizing: border-box;
+  padding: 24px;
+  overflow-y: auto;
   z-index: 1001;
 }
 
-.modal {
+.login-modal {
   position: relative;
-  width: 430px;
+  width: min(430px, 100%);
+  max-height: calc(100dvh - 48px);
+  box-sizing: border-box;
+  overflow-y: auto;
   background: #fff;
   border-radius: 18px;
   padding: 36px;
@@ -34,7 +40,7 @@
   color: #111827;
 }
 
-.modal h2 {
+.login-modal h2 {
   text-align: center;
   font-size: 40px;
   font-weight: 700;
@@ -42,7 +48,7 @@
   margin-bottom: 10px;
 }
 
-.modal > p {
+.login-modal > p {
   text-align: center;
   color: #667085;
   font-size: 15px;
@@ -127,4 +133,54 @@
   margin-top: 12px;
   font-size: 14px;
   text-align: center;
+}
+
+@media (max-width: 600px) {
+  .login-modal-overlay {
+    align-items: flex-start;
+    padding: 16px;
+  }
+
+  .login-modal {
+    max-height: calc(100dvh - 32px);
+    margin: auto 0;
+    padding: 30px 22px 24px;
+    border-radius: 16px;
+  }
+
+  .login-modal h2 {
+    padding: 0 28px;
+    font-size: 32px;
+  }
+
+  .login-modal > p {
+    margin-bottom: 26px;
+  }
+
+  .login-modal .form-group {
+    margin-bottom: 18px;
+  }
+
+  .login-modal .form-group input {
+    height: 48px;
+  }
+
+  .login-modal .login-button {
+    height: 50px;
+  }
+}
+
+@media (max-width: 360px) {
+  .login-modal-overlay {
+    padding: 10px;
+  }
+
+  .login-modal {
+    max-height: calc(100dvh - 20px);
+    padding: 26px 16px 20px;
+  }
+
+  .login-modal h2 {
+    font-size: 28px;
+  }
 }
